@@ -178,9 +178,9 @@ export default function MrDeepseeksEditor() {
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Editor/Preview Area */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-h-0">
           {/* View Toggle */}
           <div className="h-12 border-b border-white/10 flex items-center justify-between px-4 bg-[#161b22]">
             <div className="flex gap-1 bg-white/5 rounded-lg p-1">
@@ -191,7 +191,7 @@ export default function MrDeepseeksEditor() {
                 }`}
               >
                 <Code className="w-4 h-4" />
-                Code
+                <span className="hidden sm:inline">Code</span>
               </button>
               <button
                 onClick={() => setView('preview')}
@@ -200,7 +200,7 @@ export default function MrDeepseeksEditor() {
                 }`}
               >
                 <Eye className="w-4 h-4" />
-                Preview
+                <span className="hidden sm:inline">Preview</span>
               </button>
             </div>
 
@@ -216,7 +216,8 @@ export default function MrDeepseeksEditor() {
                         : 'text-gray-400 hover:text-white hover:bg-white/5'
                     }`}
                   >
-                    {tab.toUpperCase()}
+                    <span className="hidden sm:inline">{tab.toUpperCase()}</span>
+                    <span className="sm:hidden">{tab.charAt(0).toUpperCase()}</span>
                   </button>
                 ))}
               </div>
@@ -253,114 +254,232 @@ export default function MrDeepseeksEditor() {
           </div>
         </div>
 
-        {/* Chat Dock */}
-        <div
-          className={`border-l border-white/10 bg-[#161b22] transition-all duration-300 ${
-            chatOpen ? 'w-96' : 'w-0'
-          }`}
-        >
-          {chatOpen && (
-            <div className="h-full flex flex-col">
-              {/* Chat Header */}
-              <div className="h-12 border-b border-white/10 flex items-center justify-between px-4">
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-blue-400" />
-                  <span className="font-medium">Chat</span>
-                </div>
-                <button
-                  onClick={() => setChatOpen(false)}
-                  className="p-1 hover:bg-white/5 rounded transition-colors"
-                >
-                  <ChevronDown className="w-4 h-4 rotate-90" />
-                </button>
-              </div>
-
-              {/* Chat Messages */}
-              <div className="flex-1 overflow-auto p-4 space-y-4">
-                {messages.length === 0 && (
-                  <div className="space-y-3">
-                    <p className="text-gray-400 text-sm">What would you like to build?</p>
-                    <div className="space-y-2">
-                      {[
-                        'A button that says hello',
-                        'A calculator app',
-                        'A todo list',
-                        'A landing page'
-                      ].map(suggestion => (
-                        <button
-                          key={suggestion}
-                          onClick={() => setPrompt(suggestion)}
-                          className="w-full text-left px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm text-gray-300 transition-colors"
-                        >
-                          {suggestion}
-                        </button>
-                      ))}
-                    </div>
+        {/* Desktop Sidebar Chat */}
+        <div className="hidden lg:block lg:w-96">
+          {/* Chat Dock - Desktop Sidebar */}
+          <div
+            className={`h-full border-l border-white/10 bg-[#161b22] transition-all duration-300 ${
+              chatOpen ? 'w-96' : 'w-0'
+            }`}
+          >
+            {chatOpen && (
+              <div className="h-full flex flex-col">
+                {/* Chat Header */}
+                <div className="h-12 border-b border-white/10 flex items-center justify-between px-4">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4 text-blue-400" />
+                    <span className="font-medium">Chat</span>
                   </div>
-                )}
-
-                {messages.map((msg, idx) => (
-                  <div
-                    key={idx}
-                    className={`p-3 rounded-lg ${
-                      msg.role === 'user'
-                        ? 'bg-blue-500/20 text-blue-100'
-                        : 'bg-white/5 text-gray-300'
-                    }`}
-                  >
-                    <div className="text-xs font-medium mb-1 opacity-70">
-                      {msg.role === 'user' ? 'You' : 'Mr. Deepseeks'}
-                    </div>
-                    <div className="text-sm">{msg.content}</div>
-                  </div>
-                ))}
-
-                {isGenerating && (
-                  <div className="flex items-center gap-2 text-blue-400">
-                    <Image
-                      src="/building-app-icon.svg"
-                      alt="Building"
-                      width={24}
-                      height={24}
-                      className="animate-pulse"
-                    />
-                    <span className="text-sm">Building your app...</span>
-                  </div>
-                )}
-
-                <div ref={chatEndRef} />
-              </div>
-
-              {/* Chat Input */}
-              <div className="p-4 border-t border-white/10">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={prompt}
-                    onChange={e => setPrompt(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleGenerate()}
-                    placeholder="Describe your app..."
-                    className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    disabled={isGenerating}
-                  />
                   <button
-                    onClick={handleGenerate}
-                    disabled={!prompt.trim() || isGenerating}
-                    className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+                    onClick={() => setChatOpen(false)}
+                    className="p-1 hover:bg-white/5 rounded transition-colors"
                   >
-                    <Play className="w-4 h-4" />
+                    <ChevronDown className="w-4 h-4 rotate-90" />
                   </button>
+                </div>
+
+                {/* Chat Messages */}
+                <div className="flex-1 overflow-auto p-4 space-y-4">
+                  {messages.length === 0 && (
+                    <div className="space-y-3">
+                      <p className="text-gray-400 text-sm">What would you like to build?</p>
+                      <div className="space-y-2">
+                        {[
+                          'A button that says hello',
+                          'A calculator app',
+                          'A todo list',
+                          'A landing page'
+                        ].map(suggestion => (
+                          <button
+                            key={suggestion}
+                            onClick={() => setPrompt(suggestion)}
+                            className="w-full text-left px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm text-gray-300 transition-colors"
+                          >
+                            {suggestion}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {messages.map((msg, idx) => (
+                    <div
+                      key={idx}
+                      className={`p-3 rounded-lg ${
+                        msg.role === 'user'
+                          ? 'bg-blue-500/20 text-blue-100'
+                          : 'bg-white/5 text-gray-300'
+                      }`}
+                    >
+                      <div className="text-xs font-medium mb-1 opacity-70">
+                        {msg.role === 'user' ? 'You' : 'Mr. Deepseeks'}
+                      </div>
+                      <div className="text-sm">{msg.content}</div>
+                    </div>
+                  ))}
+
+                  {isGenerating && (
+                    <div className="flex items-center gap-2 text-blue-400">
+                      <Image
+                        src="/building-app-icon.svg"
+                        alt="Building"
+                        width={24}
+                        height={24}
+                        className="animate-pulse"
+                      />
+                      <span className="text-sm">Building your app...</span>
+                    </div>
+                  )}
+
+                  <div ref={chatEndRef} />
+                </div>
+
+                {/* Chat Input */}
+                <div className="p-4 border-t border-white/10">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={prompt}
+                      onChange={e => setPrompt(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleGenerate()}
+                      placeholder="Describe your app..."
+                      className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      disabled={isGenerating}
+                    />
+                    <button
+                      onClick={handleGenerate}
+                      disabled={!prompt.trim() || isGenerating}
+                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+                    >
+                      <Play className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Mobile Bottom Chat */}
+        <div className="lg:hidden">
+          {/* Mobile Chat Overlay */}
+          {chatOpen && (
+            <div className="fixed inset-0 bg-black/50 z-50 lg:hidden" onClick={() => setChatOpen(false)}>
+              <div
+                className="absolute bottom-0 left-0 right-0 bg-[#161b22] border-t border-white/10 max-h-[70vh] flex flex-col"
+                onClick={e => e.stopPropagation()}
+              >
+                {/* Chat Header */}
+                <div className="h-12 border-b border-white/10 flex items-center justify-between px-4">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4 text-blue-400" />
+                    <span className="font-medium">Chat</span>
+                  </div>
+                  <button
+                    onClick={() => setChatOpen(false)}
+                    className="p-1 hover:bg-white/5 rounded transition-colors"
+                  >
+                    <ChevronDown className="w-4 h-4 rotate-90" />
+                  </button>
+                </div>
+
+                {/* Chat Messages */}
+                <div className="flex-1 overflow-auto p-4 space-y-4">
+                  {messages.length === 0 && (
+                    <div className="space-y-3">
+                      <p className="text-gray-400 text-sm">What would you like to build?</p>
+                      <div className="space-y-2">
+                        {[
+                          'A button that says hello',
+                          'A calculator app',
+                          'A todo list',
+                          'A landing page'
+                        ].map(suggestion => (
+                          <button
+                            key={suggestion}
+                            onClick={() => setPrompt(suggestion)}
+                            className="w-full text-left px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm text-gray-300 transition-colors"
+                          >
+                            {suggestion}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {messages.map((msg, idx) => (
+                    <div
+                      key={idx}
+                      className={`p-3 rounded-lg ${
+                        msg.role === 'user'
+                          ? 'bg-blue-500/20 text-blue-100'
+                          : 'bg-white/5 text-gray-300'
+                      }`}
+                    >
+                      <div className="text-xs font-medium mb-1 opacity-70">
+                        {msg.role === 'user' ? 'You' : 'Mr. Deepseeks'}
+                      </div>
+                      <div className="text-sm">{msg.content}</div>
+                    </div>
+                  ))}
+
+                  {isGenerating && (
+                    <div className="flex items-center gap-2 text-blue-400">
+                      <Image
+                        src="/building-app-icon.svg"
+                        alt="Building"
+                        width={24}
+                        height={24}
+                        className="animate-pulse"
+                      />
+                      <span className="text-sm">Building your app...</span>
+                    </div>
+                  )}
+
+                  <div ref={chatEndRef} />
+                </div>
+
+                {/* Chat Input */}
+                <div className="p-4 border-t border-white/10">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={prompt}
+                      onChange={e => setPrompt(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleGenerate()}
+                      placeholder="Describe your app..."
+                      className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      disabled={isGenerating}
+                    />
+                    <button
+                      onClick={handleGenerate}
+                      disabled={!prompt.trim() || isGenerating}
+                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+                    >
+                      <Play className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* Chat Toggle (when closed) */}
+        {/* Chat Toggle (when closed) - Desktop */}
         {!chatOpen && (
           <button
             onClick={() => setChatOpen(true)}
-            className="absolute right-4 bottom-4 w-12 h-12 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center shadow-lg transition-colors"
+            className="hidden lg:block absolute right-4 top-4 w-12 h-12 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center shadow-lg transition-colors z-10"
+          >
+            <MessageSquare className="w-5 h-5" />
+          </button>
+        )}
+
+        {/* Chat Toggle (when closed) - Mobile */}
+        {!chatOpen && (
+          <button
+            onClick={() => setChatOpen(true)}
+            className="lg:hidden fixed right-4 bottom-4 w-12 h-12 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center shadow-lg transition-colors z-40"
           >
             <MessageSquare className="w-5 h-5" />
           </button>
