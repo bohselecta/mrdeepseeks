@@ -417,12 +417,12 @@ export default function MrDeepseeksEditor() {
                     <div className="flex items-center gap-2 text-blue-400">
                       <Image
                         src="/building-app-icon.svg"
-                        alt="Building"
+                        alt="Working"
                         width={24}
                         height={24}
                         className="animate-pulse"
                       />
-                      <span className="text-sm">Building your app...</span>
+                      <span className="text-sm">Working...</span>
                     </div>
                   )}
 
@@ -454,6 +454,30 @@ export default function MrDeepseeksEditor() {
                     </div>
                   )}
 
+                  {/* Text Input - Full Width */}
+                  <div className="mb-3">
+                    <textarea
+                      ref={chatInputRef}
+                      value={prompt}
+                      onChange={handleInputChange}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleGenerate();
+                        }
+                      }}
+                      placeholder={user ? "Ask about an image or chat..." : "Describe your app..."}
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none overflow-hidden"
+                      disabled={isGenerating}
+                      rows={1}
+                      style={{
+                        minHeight: '40px',
+                        maxHeight: '200px' // ~10 lines at ~20px per line
+                      }}
+                    />
+                  </div>
+
+                  {/* Action Buttons - Below Input */}
                   <div className="flex gap-2">
                     {/* Image Upload Button - Only for logged in users */}
                     {user && (
@@ -467,43 +491,23 @@ export default function MrDeepseeksEditor() {
                         />
                         <label
                           htmlFor="image-upload-desktop"
-                          className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg cursor-pointer flex items-center gap-2 transition-colors"
+                          className="px-2 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg cursor-pointer flex items-center gap-1.5 transition-colors text-sm"
                         >
-                          <Plus className="w-5 h-5" />
-                          <span className="text-sm font-medium">Image</span>
+                          <Plus className="w-4 h-4" />
+                          <span className="font-medium">Image</span>
                         </label>
                       </>
                     )}
 
-                    {/* Text Input */}
-                    <div className="relative flex-1">
-                      <textarea
-                        ref={chatInputRef}
-                        value={prompt}
-                        onChange={handleInputChange}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            handleGenerate();
-                          }
-                        }}
-                        placeholder={user ? "Ask about an image or chat..." : "Describe your app..."}
-                        className="w-full px-3 py-2 pr-12 bg-white/5 border border-white/10 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none overflow-hidden"
-                        disabled={isGenerating}
-                        rows={1}
-                        style={{
-                          minHeight: '40px',
-                          maxHeight: '200px' // ~10 lines at ~20px per line
-                        }}
-                      />
-                      <button
-                        onClick={handleGenerate}
-                        disabled={(!prompt.trim() && !uploadedImage) || isGenerating}
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 bg-[#3EADF5] hover:bg-[#2E9CF5] disabled:opacity-50 disabled:cursor-not-allowed rounded-full flex items-center justify-center transition-colors"
-                      >
-                        <Play className="w-3 h-3 text-white" />
-                      </button>
-                    </div>
+                    {/* Send Button */}
+                    <button
+                      onClick={handleGenerate}
+                      disabled={(!prompt.trim() && !uploadedImage) || isGenerating}
+                      className="ml-auto px-3 py-1.5 bg-[#3EADF5] hover:bg-[#2E9CF5] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors text-sm flex items-center gap-1.5"
+                    >
+                      <Play className="w-3 h-3" />
+                      <span>Send</span>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -579,14 +583,14 @@ export default function MrDeepseeksEditor() {
 
                   {isGenerating && (
                     <div className="flex items-center gap-2 text-blue-400">
-          <Image
+                      <Image
                         src="/building-app-icon.svg"
-                        alt="Building"
+                        alt="Working"
                         width={24}
                         height={24}
                         className="animate-pulse"
                       />
-                      <span className="text-sm">Building your app...</span>
+                      <span className="text-sm">Working...</span>
                     </div>
                   )}
 
@@ -618,6 +622,30 @@ export default function MrDeepseeksEditor() {
                     </div>
                   )}
 
+                  {/* Text Input - Full Width */}
+                  <div className="mb-3">
+                    <textarea
+                      ref={chatInputRef}
+                      value={prompt}
+                      onChange={handleInputChange}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleGenerate();
+                        }
+                      }}
+                      placeholder={user ? "Ask about an image or chat..." : "Describe your app..."}
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none overflow-hidden"
+                      disabled={isGenerating}
+                      rows={1}
+                      style={{
+                        minHeight: '40px',
+                        maxHeight: '200px' // ~10 lines at ~20px per line
+                      }}
+                    />
+                  </div>
+
+                  {/* Action Buttons - Below Input */}
                   <div className="flex gap-2">
                     {/* Image Upload Button - Only for logged in users */}
                     {user && (
@@ -631,43 +659,23 @@ export default function MrDeepseeksEditor() {
                         />
                         <label
                           htmlFor="image-upload-mobile"
-                          className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg cursor-pointer flex items-center gap-2 transition-colors"
+                          className="px-2 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg cursor-pointer flex items-center gap-1.5 transition-colors text-sm"
                         >
-                          <Plus className="w-5 h-5" />
-                          <span className="text-sm font-medium">Image</span>
+                          <Plus className="w-4 h-4" />
+                          <span className="font-medium">Image</span>
                         </label>
                       </>
                     )}
 
-                    {/* Text Input */}
-                    <div className="relative flex-1">
-                      <textarea
-                        ref={chatInputRef}
-                        value={prompt}
-                        onChange={handleInputChange}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            handleGenerate();
-                          }
-                        }}
-                        placeholder={user ? "Ask about an image or chat..." : "Describe your app..."}
-                        className="w-full px-3 py-2 pr-12 bg-white/5 border border-white/10 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none overflow-hidden"
-                        disabled={isGenerating}
-                        rows={1}
-                        style={{
-                          minHeight: '40px',
-                          maxHeight: '200px' // ~10 lines at ~20px per line
-                        }}
-                      />
-                      <button
-                        onClick={handleGenerate}
-                        disabled={(!prompt.trim() && !uploadedImage) || isGenerating}
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 bg-[#3EADF5] hover:bg-[#2E9CF5] disabled:opacity-50 disabled:cursor-not-allowed rounded-full flex items-center justify-center transition-colors"
-                      >
-                        <Play className="w-3 h-3 text-white" />
-                      </button>
-                    </div>
+                    {/* Send Button */}
+                    <button
+                      onClick={handleGenerate}
+                      disabled={(!prompt.trim() && !uploadedImage) || isGenerating}
+                      className="ml-auto px-3 py-1.5 bg-[#3EADF5] hover:bg-[#2E9CF5] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors text-sm flex items-center gap-1.5"
+                    >
+                      <Play className="w-3 h-3" />
+                      <span>Send</span>
+                    </button>
                   </div>
                 </div>
               </div>
