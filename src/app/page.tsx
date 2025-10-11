@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Menu, Code, Eye, MessageSquare, ChevronDown, Sparkles, Play, Save, FolderOpen, Plus, X } from 'lucide-react';
+import { Menu, Code, Eye, MessageSquare, ChevronDown, Play, Save, FolderOpen, Plus, X } from 'lucide-react';
 import Image from 'next/image';
 
 type Message = {
   role: 'user' | 'assistant';
   content: string;
+  image?: string;
 };
 
 export default function MrDeepseeksEditor() {
@@ -400,7 +401,7 @@ export default function MrDeepseeksEditor() {
                         {msg.role === 'user' ? 'You' : 'Mr. Deepseeks'}
                       </div>
                       {msg.image && (
-                        <img src={msg.image} alt="uploaded" className="max-w-full rounded mb-2" />
+                        <Image src={msg.image} alt="uploaded" width={400} height={300} className="max-w-full rounded mb-2" />
                       )}
                       <div className="text-sm whitespace-pre-wrap">{msg.content}</div>
                     </div>
@@ -427,9 +428,11 @@ export default function MrDeepseeksEditor() {
                   {/* Image Preview */}
                   {uploadedImage && (
                     <div className="mb-3 relative inline-block">
-                      <img
+                      <Image
                         src={uploadedImage}
                         alt="Preview"
+                        width={200}
+                        height={128}
                         className="max-h-32 rounded-lg border-2 border-purple-500"
                       />
                       <button
@@ -562,7 +565,7 @@ export default function MrDeepseeksEditor() {
                         {msg.role === 'user' ? 'You' : 'Mr. Deepseeks'}
                       </div>
                       {msg.image && (
-                        <img src={msg.image} alt="uploaded" className="max-w-full rounded mb-2" />
+                        <Image src={msg.image} alt="uploaded" width={400} height={300} className="max-w-full rounded mb-2" />
                       )}
                       <div className="text-sm whitespace-pre-wrap">{msg.content}</div>
                     </div>
@@ -589,9 +592,11 @@ export default function MrDeepseeksEditor() {
                   {/* Image Preview */}
                   {uploadedImage && (
                     <div className="mb-3 relative inline-block">
-                      <img
+                      <Image
                         src={uploadedImage}
                         alt="Preview"
+                        width={200}
+                        height={128}
                         className="max-h-32 rounded-lg border-2 border-purple-500"
                       />
                       <button
