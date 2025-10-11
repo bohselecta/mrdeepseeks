@@ -17,13 +17,16 @@ export default function MrDeepseeksEditor() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
 
+  // Store the COMPLETE HTML
+  const [completeHtml, setCompleteHtml] = useState('');
+
+  // Parsed sections for display in tabs
   const [files, setFiles] = useState({
     html: '<!-- Your HTML will appear here -->',
     css: '/* Your CSS will appear here */',
     js: '// Your JavaScript will appear here'
   });
 
-  const [previewHtml, setPreviewHtml] = useState('');
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -32,42 +35,33 @@ export default function MrDeepseeksEditor() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Update preview whenever files change
+  // Parse complete HTML into sections for tabs
+  const parseHtmlSections = (html: string) => {
+    // Extract CSS from <style> tags
+    const styleMatch = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+    const css = styleMatch ? styleMatch[1].trim() : '';
+
+    // Extract JS from <script> tags
+    const scriptMatch = html.match(/<script[^>]*>([\s\S]*?)<\/script>/i);
+    const js = scriptMatch ? scriptMatch[1].trim() : '';
+
+    // Extract body content
+    const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+    let bodyContent = bodyMatch ? bodyMatch[1].trim() : '';
+
+    // Remove script tags from body content
+    bodyContent = bodyContent.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '').trim();
+
+    return { html: bodyContent, css, js };
+  };
+
+  // Update parsed sections when complete HTML changes
   useEffect(() => {
-    // Strip any remaining markers
-    const cleanHtml = files.html
-      .replace(/=== HTML ===/g, '')
-      .replace(/=== CSS ===/g, '')
-      .replace(/=== JS ===/g, '')
-      .trim();
-
-    const cleanCss = files.css
-      .replace(/=== HTML ===/g, '')
-      .replace(/=== CSS ===/g, '')
-      .replace(/=== JS ===/g, '')
-      .trim();
-
-    const cleanJs = files.js
-      .replace(/=== HTML ===/g, '')
-      .replace(/=== CSS ===/g, '')
-      .replace(/=== JS ===/g, '')
-      .trim();
-
-    const html = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>${cleanCss}</style>
-</head>
-<body>
-  ${cleanHtml}
-  <script>${cleanJs}</script>
-</body>
-</html>`;
-    setPreviewHtml(html);
-  }, [files]);
+    if (completeHtml) {
+      const parsed = parseHtmlSections(completeHtml);
+      setFiles(parsed);
+    }
+  }, [completeHtml]);
 
 
   // Handle generation with streaming
@@ -78,9 +72,9 @@ export default function MrDeepseeksEditor() {
     setMessages(prev => [...prev, { role: 'user', content: prompt }]);
 
     setIsGenerating(true);
-    setFiles({ html: '', css: '', js: '' });
+    setCompleteHtml('');
     const currentPrompt = prompt;
-    setPrompt(''); // Clear input
+    setPrompt('');
 
     try {
       const response = await fetch('/api/generate', {
@@ -91,7 +85,7 @@ export default function MrDeepseeksEditor() {
 
       const reader = response.body!.getReader();
       const decoder = new TextDecoder();
-      let currentFile: keyof typeof files = 'html';
+      let accumulatedHtml = '';
 
       while (true) {
         const { done, value } = await reader.read();
@@ -105,14 +99,18 @@ export default function MrDeepseeksEditor() {
             try {
               const data = JSON.parse(line.slice(6));
 
-              if (data.type === 'file_switch') {
-                currentFile = data.file;
-                setActiveTab(data.file);
-              } else if (data.type === 'content') {
-                setFiles(prev => ({
-                  ...prev,
-                  [currentFile]: prev[currentFile] + data.content
-                }));
+              if (data.type === 'content') {
+                accumulatedHtml += data.content;
+                setCompleteHtml(accumulatedHtml);
+
+                // Auto-switch tabs based on what's being written
+                if (accumulatedHtml.includes('<style') && !accumulatedHtml.includes('</style>')) {
+                  setActiveTab('css');
+                } else if (accumulatedHtml.includes('<script') && !accumulatedHtml.includes('</script>')) {
+                  setActiveTab('js');
+                } else if (accumulatedHtml.includes('<body')) {
+                  setActiveTab('html');
+                }
               } else if (data.type === 'done') {
                 setMessages(prev => [...prev, {
                   role: 'assistant',
@@ -225,7 +223,7 @@ export default function MrDeepseeksEditor() {
             ) : (
               <iframe
                 ref={iframeRef}
-                srcDoc={previewHtml}
+                srcDoc={completeHtml}
                 className="w-full h-full bg-white"
                 title="Preview"
                 sandbox="allow-scripts allow-modals"

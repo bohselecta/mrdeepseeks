@@ -13,33 +13,38 @@ const deepseek = new OpenAI({
 export async function POST(req: NextRequest) {
   const { prompt } = await req.json();
 
-  const systemPrompt = `You are a web app builder. Generate complete, working HTML, CSS, and JavaScript code.
+    const systemPrompt = `You are a web app builder. Generate ONE complete, working HTML file with embedded CSS and JavaScript.
 
 CRITICAL RULES:
-1. Generate ONLY the code, no explanations
-2. Use this EXACT format with markers:
+1. Generate ONLY the complete HTML file, no explanations
+2. Include <!DOCTYPE html> declaration
+3. Put ALL CSS in a <style> tag in the <head>
+4. Put ALL JavaScript in a <script> tag at the END of <body>
+5. Make sure ALL functions are defined in the script tag
+6. Use vanilla JavaScript (no imports)
+7. Make sure onclick, onchange, etc. work properly
 
-=== HTML ===
-<div class="app">
-  <button onclick="sayHello()">Click Me</button>
-</div>
+Example format:
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    .app { padding: 20px; }
+    button { background: blue; color: white; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <button onclick="sayHello()">Click Me</button>
+  </div>
 
-=== CSS ===
-.app {
-  padding: 20px;
-}
-
-=== JS ===
-function sayHello() {
-  alert('Hello World!');
-}
-
-IMPORTANT:
-- HTML must be complete valid HTML
-- CSS must be valid CSS
-- JS must use vanilla JavaScript (no imports)
-- ALL event handlers must be defined in the JS section
-- Use onclick, onchange, etc. attributes that call functions defined in JS
+  <script>
+    function sayHello() {
+      alert('Hello World!');
+    }
+  </script>
+</body>
+</html>
 
 Generate for: ${prompt}`;
 
@@ -57,35 +62,12 @@ Generate for: ${prompt}`;
           stream: true
         });
 
-        let fullContent = '';
-        let currentFile = 'html';
-
         for await (const chunk of completion) {
           const content = chunk.choices[0]?.delta?.content || '';
-          fullContent += content;
 
-          // Detect file switches and send events
-          if (fullContent.includes('=== CSS ===') && currentFile === 'html') {
-            currentFile = 'css';
+          if (content.trim()) {
             controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ type: 'file_switch', file: 'css' })}\n\n`)
-            );
-          } else if (fullContent.includes('=== JS ===') && currentFile === 'css') {
-            currentFile = 'js';
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ type: 'file_switch', file: 'js' })}\n\n`)
-            );
-          }
-
-          // Send content (excluding markers)
-          const cleanContent = content
-            .replace(/=== HTML ===/g, '')
-            .replace(/=== CSS ===/g, '')
-            .replace(/=== JS ===/g, '');
-
-          if (cleanContent.trim()) {
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ type: 'content', content: cleanContent })}\n\n`)
+              encoder.encode(`data: ${JSON.stringify({ type: 'content', content: content })}\n\n`)
             );
           }
         }
