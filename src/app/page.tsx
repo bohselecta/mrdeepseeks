@@ -29,11 +29,32 @@ export default function MrDeepseeksEditor() {
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatInputRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-scroll chat to bottom
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Auto-resize chat input
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const textarea = e.target;
+    setPrompt(textarea.value);
+
+    // Reset height to minimum to get accurate scrollHeight
+    textarea.style.height = '40px';
+
+    // Calculate new height (scrollHeight includes padding but not border)
+    const scrollHeight = textarea.scrollHeight;
+    const maxHeight = 200; // ~10 lines
+
+    if (scrollHeight <= maxHeight) {
+      textarea.style.height = scrollHeight + 'px';
+    } else {
+      textarea.style.height = maxHeight + 'px';
+      textarea.style.overflowY = 'auto';
+    }
+  };
 
   // Parse complete HTML into sections for tabs
   const parseHtmlSections = (html: string) => {
@@ -88,7 +109,13 @@ export default function MrDeepseeksEditor() {
     setCompleteHtml('');
     setActiveTab('html'); // Start on HTML tab
     const currentPrompt = prompt;
+
+    // Clear prompt and reset textarea height
     setPrompt('');
+    if (chatInputRef.current) {
+      chatInputRef.current.style.height = '40px';
+      chatInputRef.current.style.overflowY = 'hidden';
+    }
 
     try {
       const response = await fetch('/api/generate', {
@@ -336,22 +363,32 @@ export default function MrDeepseeksEditor() {
 
                 {/* Chat Input */}
                 <div className="p-4 border-t border-white/10">
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
+                  <div className="relative">
+                    <textarea
+                      ref={chatInputRef}
                       value={prompt}
-                      onChange={e => setPrompt(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && handleGenerate()}
+                      onChange={handleInputChange}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleGenerate();
+                        }
+                      }}
                       placeholder="Describe your app..."
-                      className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      className="w-full px-3 py-2 pr-12 bg-white/5 border border-white/10 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none overflow-hidden"
                       disabled={isGenerating}
+                      rows={1}
+                      style={{
+                        minHeight: '40px',
+                        maxHeight: '200px' // ~10 lines at ~20px per line
+                      }}
                     />
                     <button
                       onClick={handleGenerate}
                       disabled={!prompt.trim() || isGenerating}
-                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 bg-[#3EADF5] hover:bg-[#2E9CF5] disabled:opacity-50 disabled:cursor-not-allowed rounded-full flex items-center justify-center transition-colors"
                     >
-                      <Play className="w-4 h-4" />
+                      <Play className="w-3 h-3 text-white" />
                     </button>
                   </div>
                 </div>
@@ -441,22 +478,32 @@ export default function MrDeepseeksEditor() {
 
                 {/* Chat Input */}
                 <div className="p-4 border-t border-white/10">
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
+                  <div className="relative">
+                    <textarea
+                      ref={chatInputRef}
                       value={prompt}
-                      onChange={e => setPrompt(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && handleGenerate()}
+                      onChange={handleInputChange}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleGenerate();
+                        }
+                      }}
                       placeholder="Describe your app..."
-                      className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      className="w-full px-3 py-2 pr-12 bg-white/5 border border-white/10 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none overflow-hidden"
                       disabled={isGenerating}
+                      rows={1}
+                      style={{
+                        minHeight: '40px',
+                        maxHeight: '200px' // ~10 lines at ~20px per line
+                      }}
                     />
                     <button
                       onClick={handleGenerate}
                       disabled={!prompt.trim() || isGenerating}
-                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 bg-[#3EADF5] hover:bg-[#2E9CF5] disabled:opacity-50 disabled:cursor-not-allowed rounded-full flex items-center justify-center transition-colors"
                     >
-                      <Play className="w-4 h-4" />
+                      <Play className="w-3 h-3 text-white" />
                     </button>
                   </div>
                 </div>
