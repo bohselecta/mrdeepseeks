@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Search, MoreVertical, Eye, Edit, Trash2 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { ArrowLeft, Plus, Search, Eye, Edit, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { loadProjects, deleteProject, type Project } from '@/lib/projects';
@@ -12,12 +12,7 @@ export default function Dashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [user] = useState<{ id: string; email?: string } | null>({ id: 'demo-user', email: 'demo@example.com' });
 
-  useEffect(() => {
-    // Load projects using the projects service
-    loadProjectsFromService();
-  }, []);
-
-  const loadProjectsFromService = async () => {
+  const loadProjectsFromService = useCallback(async () => {
     setLoading(true);
     try {
       if (user) {
@@ -34,7 +29,12 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    // Load projects using the projects service
+    loadProjectsFromService();
+  }, [loadProjectsFromService]);
 
   const filteredProjects = projects.filter(project =>
     project.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -50,23 +50,6 @@ export default function Dashboard() {
     });
   };
 
-  const handleDeleteProject = async (projectId: string) => {
-    if (!confirm('Are you sure you want to delete this project?')) return;
-
-    try {
-      await deleteProject(projectId, user?.id);
-      // Refresh projects list
-      await loadProjectsFromService();
-    } catch (error) {
-      console.error('Failed to delete project:', error);
-      alert('Failed to delete project. Please try again.');
-    }
-  };
-
-  const generateShareUrl = (projectId: string) => {
-    // TODO: Generate unique public URL
-    return `/shared/${projectId}`;
-  };
 
   return (
     <div className="min-h-screen bg-[#0d1117] text-white">

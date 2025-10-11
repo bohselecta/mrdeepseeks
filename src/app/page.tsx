@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Menu, Code, Eye, MessageSquare, ChevronDown, Play, Save, FolderOpen, Plus, X, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import AuthModal from '@/components/AuthModal';
 import { saveProject, loadProjects, deleteProject, type Project } from '@/lib/projects';
 
