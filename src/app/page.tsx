@@ -15,7 +15,6 @@ import {
   Image as ImageIcon,
   Video,
   Download,
-  ArrowUp,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -895,7 +894,7 @@ export default function MrDeepseeksEditor() {
                           className="px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg cursor-pointer flex items-center gap-1.5 transition-all text-sm shadow-lg"
                         >
                           <Plus className="w-4 h-4" />
-                          <span className="font-medium">+ Img</span>
+                          <span className="font-medium">Img</span>
                         </label>
                       </>
 
@@ -947,7 +946,7 @@ export default function MrDeepseeksEditor() {
                       }
                       className="w-10 h-10 bg-[#3EADF5] hover:bg-[#2E9CF5] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-full flex items-center justify-center transition-all shadow-lg"
                     >
-                      <ArrowUp className="w-4 h-4" />
+                      <Play className="w-4 h-4 rotate-180" />
                     </button>
                   </div>
 
@@ -965,7 +964,7 @@ export default function MrDeepseeksEditor() {
                           <X className="w-4 h-4" />
                         </button>
                       </div>
-                      <Image
+          <Image
                         src={generatedImage}
                         alt="Generated"
                         width={512}
@@ -1183,7 +1182,7 @@ export default function MrDeepseeksEditor() {
                           className="px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg cursor-pointer flex items-center gap-1.5 transition-all text-sm shadow-lg"
                         >
                           <Plus className="w-4 h-4" />
-                            <span className="font-medium">+ Img</span>
+                          <span className="font-medium">Img</span>
                         </label>
                       </>
 
@@ -1235,7 +1234,7 @@ export default function MrDeepseeksEditor() {
                       }
                       className="w-10 h-10 bg-[#3EADF5] hover:bg-[#2E9CF5] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-full flex items-center justify-center transition-all shadow-lg"
                     >
-                      <ArrowUp className="w-4 h-4" />
+                      <Play className="w-4 h-4 rotate-180" />
                     </button>
                   </div>
 
@@ -1333,7 +1332,7 @@ export default function MrDeepseeksEditor() {
           <div className="bg-[#161b22] border border-white/10 rounded-lg p-6 w-full max-w-md mx-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <Image
+          <Image
                   src="/graphic-mark-logo.svg"
                   alt="MrDeepseeks Logo"
                   width={24}
@@ -1403,7 +1402,7 @@ export default function MrDeepseeksEditor() {
           <div className="bg-[#161b22] border border-white/10 rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[80vh] overflow-hidden">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <Image
+          <Image
                   src="/graphic-mark-logo.svg"
                   alt="MrDeepseeks Logo"
                   width={24}
