@@ -242,43 +242,37 @@ export default function MrDeepseeksEditor() {
   const handleGenerateImage = async () => {
     if (!prompt.trim() || isGeneratingImage) return;
 
+    // Check if user is logged in
+    if (!user) {
+      alert("Please log in to generate images. Sign in with your email to access image generation features.");
+      return;
+    }
+
     setIsGeneratingImage(true);
     setGeneratedImage(null);
 
     try {
-      const response = await fetch(
-        "https://api.deepinfra.com/v1/openai/images/generations",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${process.env.NEXT_PUBLIC_DEEPINFRA_API_KEY}`,
-          },
-          body: JSON.stringify({
-            prompt: prompt.trim(),
-            size: "1024x1024",
-            model: "black-forest-labs/FLUX-1-dev",
-            n: 1,
-          }),
+      const response = await fetch("/api/generate-image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({
+          prompt: prompt.trim(),
+        }),
+      });
 
       if (!response.ok) {
-        const error = await response.text();
-        console.error("Image generation API error:", error);
-        throw new Error(`Image generation failed: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Image generation API error:", errorData);
+        throw new Error(errorData.error || `Image generation failed: ${response.status}`);
       }
 
       const data = await response.json();
-
-      if (data.data && data.data[0] && data.data[0].b64_json) {
-        setGeneratedImage(`data:image/jpeg;base64,${data.data[0].b64_json}`);
-      } else {
-        throw new Error("Invalid response format from image API");
-      }
+      setGeneratedImage(data.imageUrl);
     } catch (error) {
       console.error("Failed to generate image:", error);
-      alert("Failed to generate image. Please try again.");
+      alert(`Failed to generate image: ${error instanceof Error ? error.message : 'Please try again.'}`);
     } finally {
       setIsGeneratingImage(false);
     }
@@ -288,46 +282,43 @@ export default function MrDeepseeksEditor() {
   const handleGenerateVideo = async () => {
     if (!prompt.trim() || isGeneratingVideo || videoUsage.count >= 10) return;
 
+    // Check if user is logged in
+    if (!user) {
+      alert("Please log in to generate videos. Sign in with your email to access video generation features.");
+      return;
+    }
+
     setIsGeneratingVideo(true);
     setGeneratedVideo(null);
 
     try {
-      const response = await fetch(
-        "https://api.deepinfra.com/v1/inference/Wan-AI/Wan2.1-T2V-1.3B",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${process.env.NEXT_PUBLIC_DEEPINFRA_API_KEY}`,
-          },
-          body: JSON.stringify({
-            prompt: prompt.trim(),
-          }),
+      const response = await fetch("/api/generate-video", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({
+          prompt: prompt.trim(),
+        }),
+      });
 
       if (!response.ok) {
-        const error = await response.text();
-        console.error("Video generation API error:", error);
-        throw new Error(`Video generation failed: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Video generation API error:", errorData);
+        throw new Error(errorData.error || `Video generation failed: ${response.status}`);
       }
 
       const data = await response.json();
-
-      if (data.video_url) {
-        setGeneratedVideo(data.video_url);
-        // Update usage count
-        const newUsage = {
-          count: videoUsage.count + 1,
-          month: videoUsage.month,
-        };
-        saveVideoUsage(newUsage);
-      } else {
-        throw new Error("Invalid response format from video API");
-      }
+      setGeneratedVideo(data.videoUrl);
+      // Update usage count
+      const newUsage = {
+        count: videoUsage.count + 1,
+        month: videoUsage.month,
+      };
+      saveVideoUsage(newUsage);
     } catch (error) {
       console.error("Failed to generate video:", error);
-      alert("Failed to generate video. Please try again.");
+      alert(`Failed to generate video: ${error instanceof Error ? error.message : 'Please try again.'}`);
     } finally {
       setIsGeneratingVideo(false);
     }
@@ -899,36 +890,39 @@ export default function MrDeepseeksEditor() {
                       </>
 
                       {/* Generation Buttons */}
-                      <button
-                        onClick={handleGenerateImage}
-                        disabled={
-                          !prompt.trim() ||
-                          isGeneratingImage ||
-                          isGeneratingVideo
-                        }
-                        className="px-3 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-all flex items-center gap-1.5 text-sm shadow-lg"
-                      >
+                        <button
+                          onClick={handleGenerateImage}
+                          disabled={
+                            !prompt.trim() ||
+                            isGeneratingImage ||
+                            isGeneratingVideo
+                          }
+                          className="px-3 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-all flex items-center gap-1.5 text-sm shadow-lg"
+                          title={user ? "Generate image from text" : "Sign in to generate images"}
+                        >
                         <ImageIcon className="w-4 h-4" />
                         <span className="font-medium">
                           {isGeneratingImage ? "Generating..." : "Make Img"}
                         </span>
                       </button>
 
-                      <button
-                        onClick={handleGenerateVideo}
-                        disabled={
-                          !prompt.trim() ||
-                          isGeneratingVideo ||
-                          isGeneratingImage ||
-                          videoUsage.count >= 10
-                        }
-                        className="px-3 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-all flex items-center gap-1.5 text-sm shadow-lg"
-                        title={
-                          videoUsage.count >= 10
-                            ? `Video limit reached (${videoUsage.count}/10 this month)`
-                            : "Generate video (10¢ each, 10 free per month)"
-                        }
-                      >
+                        <button
+                          onClick={handleGenerateVideo}
+                          disabled={
+                            !prompt.trim() ||
+                            isGeneratingVideo ||
+                            isGeneratingImage ||
+                            videoUsage.count >= 10
+                          }
+                          className="px-3 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-all flex items-center gap-1.5 text-sm shadow-lg"
+                          title={
+                            !user
+                              ? "Sign in to generate videos"
+                              : videoUsage.count >= 10
+                              ? `Video limit reached (${videoUsage.count}/10 this month)`
+                              : "Generate video (10¢ each, 10 free per month)"
+                          }
+                        >
                         <Video className="w-4 h-4" />
                         <span className="font-medium">
                           {isGeneratingVideo
@@ -1187,36 +1181,39 @@ export default function MrDeepseeksEditor() {
                       </>
 
                       {/* Generation Buttons */}
-                      <button
-                        onClick={handleGenerateImage}
-                        disabled={
-                          !prompt.trim() ||
-                          isGeneratingImage ||
-                          isGeneratingVideo
-                        }
-                        className="px-3 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-all flex items-center gap-1.5 text-sm shadow-lg"
-                      >
+                        <button
+                          onClick={handleGenerateImage}
+                          disabled={
+                            !prompt.trim() ||
+                            isGeneratingImage ||
+                            isGeneratingVideo
+                          }
+                          className="px-3 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-all flex items-center gap-1.5 text-sm shadow-lg"
+                          title={user ? "Generate image from text" : "Sign in to generate images"}
+                        >
                         <ImageIcon className="w-4 h-4" />
                         <span className="font-medium">
                           {isGeneratingImage ? "Generating..." : "Make Img"}
                         </span>
                       </button>
 
-                      <button
-                        onClick={handleGenerateVideo}
-                        disabled={
-                          !prompt.trim() ||
-                          isGeneratingVideo ||
-                          isGeneratingImage ||
-                          videoUsage.count >= 10
-                        }
-                        className="px-3 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-all flex items-center gap-1.5 text-sm shadow-lg"
-                        title={
-                          videoUsage.count >= 10
-                            ? `Video limit reached (${videoUsage.count}/10 this month)`
-                            : "Generate video (10¢ each, 10 free per month)"
-                        }
-                      >
+                        <button
+                          onClick={handleGenerateVideo}
+                          disabled={
+                            !prompt.trim() ||
+                            isGeneratingVideo ||
+                            isGeneratingImage ||
+                            videoUsage.count >= 10
+                          }
+                          className="px-3 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-all flex items-center gap-1.5 text-sm shadow-lg"
+                          title={
+                            !user
+                              ? "Sign in to generate videos"
+                              : videoUsage.count >= 10
+                              ? `Video limit reached (${videoUsage.count}/10 this month)`
+                              : "Generate video (10¢ each, 10 free per month)"
+                          }
+                        >
                         <Video className="w-4 h-4" />
                         <span className="font-medium">
                           {isGeneratingVideo
