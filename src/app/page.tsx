@@ -15,6 +15,7 @@ import {
   Image as ImageIcon,
   Video,
   Download,
+  ArrowUp,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -946,7 +947,7 @@ export default function MrDeepseeksEditor() {
                       }
                       className="w-10 h-10 bg-[#3EADF5] hover:bg-[#2E9CF5] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-full flex items-center justify-center transition-all shadow-lg"
                     >
-                      <Play className="w-4 h-4 rotate-180" />
+                      <ArrowUp className="w-4 h-4" />
                     </button>
                   </div>
 
@@ -1182,7 +1183,7 @@ export default function MrDeepseeksEditor() {
                           className="px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg cursor-pointer flex items-center gap-1.5 transition-all text-sm shadow-lg"
                         >
                           <Plus className="w-4 h-4" />
-                          <span className="font-medium">Img</span>
+                            <span className="font-medium">+ Img</span>
                         </label>
                       </>
 
@@ -1234,7 +1235,7 @@ export default function MrDeepseeksEditor() {
                       }
                       className="w-10 h-10 bg-[#3EADF5] hover:bg-[#2E9CF5] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-full flex items-center justify-center transition-all shadow-lg"
                     >
-                      <Play className="w-4 h-4 rotate-180" />
+                      <ArrowUp className="w-4 h-4" />
                     </button>
                   </div>
 
