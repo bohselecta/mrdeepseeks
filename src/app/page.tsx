@@ -3,30 +3,21 @@
 import { useState, useEffect, useRef } from 'react';
 import { Menu, Code, Eye, MessageSquare, ChevronDown, Sparkles, Play, Save, FolderOpen } from 'lucide-react';
 import Image from 'next/image';
-import SaveModal from '@/components/SaveModal';
-import LoadModal from '@/components/LoadModal';
-import AuthModal from '@/components/AuthModal';
-import { saveProject, deleteProject, Project } from '@/lib/storage';
-import { createClient } from '@/lib/supabase';
 
-type Files = {
-  html: string;
-  css: string;
-  js: string;
+type Message = {
+  role: 'user' | 'assistant';
+  content: string;
 };
 
 export default function MrDeepseeksEditor() {
-  const [view, setView] = useState<'code' | 'preview'>('code');
-  const [activeTab, setActiveTab] = useState<'html' | 'css' | 'js'>('html');
+  const [view, setView] = useState('code');
+  const [activeTab, setActiveTab] = useState<keyof typeof files>('html');
   const [chatOpen, setChatOpen] = useState(true);
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [saveModalOpen, setSaveModalOpen] = useState(false);
-  const [loadModalOpen, setLoadModalOpen] = useState(false);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
 
-  const [files, setFiles] = useState<Files>({
+  const [files, setFiles] = useState({
     html: '<!-- Your HTML will appear here -->',
     css: '/* Your CSS will appear here */',
     js: '// Your JavaScript will appear here'
@@ -34,145 +25,73 @@ export default function MrDeepseeksEditor() {
 
   const [previewHtml, setPreviewHtml] = useState('');
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Check auth state on mount
+  // Auto-scroll chat to bottom
   useEffect(() => {
-    const checkSession = async () => {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-    };
-
-    checkSession();
-
-    // Listen for auth changes
-    const supabase = createClient();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   // Update preview whenever files change
   useEffect(() => {
+    // Strip any remaining markers
+    const cleanHtml = files.html
+      .replace(/=== HTML ===/g, '')
+      .replace(/=== CSS ===/g, '')
+      .replace(/=== JS ===/g, '')
+      .trim();
+
+    const cleanCss = files.css
+      .replace(/=== HTML ===/g, '')
+      .replace(/=== CSS ===/g, '')
+      .replace(/=== JS ===/g, '')
+      .trim();
+
+    const cleanJs = files.js
+      .replace(/=== HTML ===/g, '')
+      .replace(/=== CSS ===/g, '')
+      .replace(/=== JS ===/g, '')
+      .trim();
+
     const html = `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>${files.css}</style>
+  <style>${cleanCss}</style>
 </head>
 <body>
-  ${files.html}
-  <script>${files.js}</script>
+  ${cleanHtml}
+  <script>${cleanJs}</script>
 </body>
 </html>`;
     setPreviewHtml(html);
   }, [files]);
 
-  // Save project handler
-  const handleSave = async (name: string, files: Files) => {
-    try {
-      if (user) {
-        // Save to Supabase for authenticated users
-        const supabase = createClient();
-        const { error } = await supabase.from('projects').insert({
-          user_id: user.id,
-          name,
-          html: files.html,
-          css: files.css,
-          js: files.js
-        });
-
-        if (error) throw error;
-        console.log('Project saved to cloud successfully');
-      } else {
-        // Save to localStorage for guest users
-        saveProject(name, files);
-        console.log('Project saved locally');
-      }
-
-      // TODO: Show success toast
-    } catch (error) {
-      // TODO: Show error toast
-      console.error('Failed to save project:', error);
-    }
-  };
-
-  // Load project handler
-  const handleLoad = (project: Project) => {
-    setFiles(project.files);
-    setActiveTab('html');
-    setLoadModalOpen(false);
-  };
-
-  // Delete project handler
-  const handleDelete = async (id: string) => {
-    try {
-      deleteProject(id);
-      // TODO: Show success toast
-      console.log('Project deleted successfully');
-    } catch (error) {
-      // TODO: Show error toast
-      console.error('Failed to delete project:', error);
-    }
-  };
-
-  // Sign out handler
-  const handleSignOut = async () => {
-    try {
-      const supabase = createClient();
-      await supabase.auth.signOut();
-      // TODO: Show success toast
-      console.log('Signed out successfully');
-    } catch (error) {
-      // TODO: Show error toast
-      console.error('Failed to sign out:', error);
-    }
-  };
-
-  // Show save modal only when there are files to save
-  const canSave = files.html.trim() || files.css.trim() || files.js.trim();
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd+S or Ctrl+S to save
-      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-        e.preventDefault();
-        if (canSave && !saveModalOpen) {
-          setSaveModalOpen(true);
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [canSave, saveModalOpen]);
 
   // Handle generation with streaming
   const handleGenerate = async () => {
     if (!prompt.trim() || isGenerating) return;
 
+    // Add user message
+    setMessages(prev => [...prev, { role: 'user', content: prompt }]);
+
     setIsGenerating(true);
     setFiles({ html: '', css: '', js: '' });
+    const currentPrompt = prompt;
+    setPrompt(''); // Clear input
 
     try {
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
+        body: JSON.stringify({ prompt: currentPrompt })
       });
 
-      if (!response.ok) throw new Error('Generation failed');
-
-      const reader = response.body?.getReader();
+      const reader = response.body!.getReader();
       const decoder = new TextDecoder();
-      let currentFile: 'html' | 'css' | 'js' = 'html';
-
-      if (!reader) return;
+      let currentFile: keyof typeof files = 'html';
 
       while (true) {
         const { done, value } = await reader.read();
@@ -195,18 +114,23 @@ export default function MrDeepseeksEditor() {
                   [currentFile]: prev[currentFile] + data.content
                 }));
               } else if (data.type === 'done') {
-                // Streaming complete
-                break;
+                setMessages(prev => [...prev, {
+                  role: 'assistant',
+                  content: '✅ App generated successfully!'
+                }]);
               }
             } catch {
-              // Ignore parse errors for incomplete chunks
+              // Ignore parse errors
             }
           }
         }
       }
     } catch (error) {
       console.error('Generation failed:', error);
-      // TODO: Show user-friendly error message
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: '❌ Generation failed. Please try again.'
+      }]);
     } finally {
       setIsGenerating(false);
     }
@@ -229,37 +153,10 @@ export default function MrDeepseeksEditor() {
           <span className="text-sm text-gray-400">Look at me! I build your apps for free!</span>
         </div>
         <div className="flex items-center gap-2">
-          {user ? (
-            <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/20 text-blue-400 rounded-lg text-sm">
-              <span>{user.email}</span>
-              <button
-                onClick={handleSignOut}
-                className="text-blue-300 hover:text-blue-200 text-xs"
-              >
-                Sign Out
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setAuthModalOpen(true)}
-              className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-lg transition-colors"
-            >
-              Sign In
-            </button>
-          )}
-          <button
-            onClick={() => setSaveModalOpen(true)}
-            disabled={!canSave}
-            className="p-2 hover:bg-white/5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Save Project"
-          >
+          <button className="p-2 hover:bg-white/5 rounded-lg transition-colors">
             <Save className="w-5 h-5" />
           </button>
-          <button
-            onClick={() => setLoadModalOpen(true)}
-            className="p-2 hover:bg-white/5 rounded-lg transition-colors"
-            title="Load Project"
-          >
+          <button className="p-2 hover:bg-white/5 rounded-lg transition-colors">
             <FolderOpen className="w-5 h-5" />
           </button>
           <button className="p-2 hover:bg-white/5 rounded-lg transition-colors">
@@ -331,7 +228,7 @@ export default function MrDeepseeksEditor() {
                 srcDoc={previewHtml}
                 className="w-full h-full bg-white"
                 title="Preview"
-                sandbox="allow-scripts"
+                sandbox="allow-scripts allow-modals"
               />
             )}
           </div>
@@ -359,16 +256,16 @@ export default function MrDeepseeksEditor() {
                 </button>
               </div>
 
-              {/* Chat Content */}
+              {/* Chat Messages */}
               <div className="flex-1 overflow-auto p-4 space-y-4">
-                {!isGenerating && files.html === '' && (
+                {messages.length === 0 && (
                   <div className="space-y-3">
                     <p className="text-gray-400 text-sm">What would you like to build?</p>
                     <div className="space-y-2">
                       {[
+                        'A button that says hello',
                         'A calculator app',
                         'A todo list',
-                        'A portfolio page',
                         'A landing page'
                       ].map(suggestion => (
                         <button
@@ -383,12 +280,30 @@ export default function MrDeepseeksEditor() {
                   </div>
                 )}
 
+                {messages.map((msg, idx) => (
+                  <div
+                    key={idx}
+                    className={`p-3 rounded-lg ${
+                      msg.role === 'user'
+                        ? 'bg-blue-500/20 text-blue-100'
+                        : 'bg-white/5 text-gray-300'
+                    }`}
+                  >
+                    <div className="text-xs font-medium mb-1 opacity-70">
+                      {msg.role === 'user' ? 'You' : 'Mr. Deepseeks'}
+                    </div>
+                    <div className="text-sm">{msg.content}</div>
+                  </div>
+                ))}
+
                 {isGenerating && (
                   <div className="flex items-center gap-2 text-blue-400">
                     <Sparkles className="w-4 h-4 animate-pulse" />
                     <span className="text-sm">Building your app...</span>
                   </div>
                 )}
+
+                <div ref={chatEndRef} />
               </div>
 
               {/* Chat Input */}
@@ -426,23 +341,6 @@ export default function MrDeepseeksEditor() {
           </button>
         )}
 
-        {/* Modals */}
-        <SaveModal
-          isOpen={saveModalOpen}
-          onClose={() => setSaveModalOpen(false)}
-          onSave={handleSave}
-          files={files}
-        />
-        <LoadModal
-          isOpen={loadModalOpen}
-          onClose={() => setLoadModalOpen(false)}
-          onLoad={handleLoad}
-          onDelete={handleDelete}
-        />
-        <AuthModal
-          isOpen={authModalOpen}
-          onClose={() => setAuthModalOpen(false)}
-        />
       </div>
     </div>
   );

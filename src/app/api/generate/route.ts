@@ -79,9 +79,9 @@ Generate for: ${prompt}`;
 
           // Send content (excluding markers)
           const cleanContent = content
-            .replace(/^=== HTML ===\s*/g, '')
-            .replace(/^=== CSS ===\s*/g, '')
-            .replace(/^=== JS ===\s*/g, '');
+            .replace(/=== HTML ===/g, '')
+            .replace(/=== CSS ===/g, '')
+            .replace(/=== JS ===/g, '');
 
           if (cleanContent.trim()) {
             controller.enqueue(
