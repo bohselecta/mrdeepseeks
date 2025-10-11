@@ -194,6 +194,9 @@ export default function MrDeepseeksEditor() {
                   ...prev,
                   [currentFile]: prev[currentFile] + data.content
                 }));
+              } else if (data.type === 'done') {
+                // Streaming complete
+                break;
               }
             } catch {
               // Ignore parse errors for incomplete chunks
@@ -223,7 +226,7 @@ export default function MrDeepseeksEditor() {
             />
           </div>
           <h1 className="text-lg font-bold">Mr. Deepseeks</h1>
-          <span className="text-sm text-gray-400">I build your apps instantly!</span>
+          <span className="text-sm text-gray-400">Look at me! I build your apps for free!</span>
         </div>
         <div className="flex items-center gap-2">
           {user ? (
