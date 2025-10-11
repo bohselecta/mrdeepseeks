@@ -320,8 +320,8 @@ export default function MrDeepseeksEditor() {
                     <Image
                       src="/building-app-icon.svg"
                       alt="Building"
-                      width={20}
-                      height={20}
+                      width={24}
+                      height={24}
                       className="animate-pulse"
                     />
                     <span className="text-sm">Building your app...</span>
