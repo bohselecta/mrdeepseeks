@@ -770,65 +770,64 @@ export default function MrDeepseeksEditor() {
                   </div>
 
                   {/* Action Buttons - Below Input */}
-                  <div className="flex gap-2">
-                    {/* Image Upload Button - Only for logged in users */}
-                    {user && (
-                      <>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageUpload}
-                          className="hidden"
-                          id="image-upload-desktop"
-                        />
-                        <label
-                          htmlFor="image-upload-desktop"
-                          className="px-2 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg cursor-pointer flex items-center gap-1.5 transition-colors text-sm"
-                        >
-                          <Plus className="w-4 h-4" />
-                          <span className="font-medium">Image</span>
-                        </label>
-                      </>
-                    )}
+                  <div className="flex items-center justify-between pt-3">
+                    {/* Left Side Buttons */}
+                    <div className="flex gap-2">
+                      {/* Image Upload Button - Only for logged in users */}
+                      {user && (
+                        <>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                            className="hidden"
+                            id="image-upload-desktop"
+                          />
+                          <label
+                            htmlFor="image-upload-desktop"
+                            className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg cursor-pointer flex items-center gap-1.5 transition-colors text-sm"
+                          >
+                            <Plus className="w-4 h-4" />
+                            <span className="font-medium">Image</span>
+                          </label>
+                        </>
+                      )}
 
-                    {/* Send Button */}
+                      {/* Generation Buttons */}
+                      <button
+                        onClick={handleGenerateImage}
+                        disabled={!prompt.trim() || isGeneratingImage || isGeneratingVideo}
+                        className="px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-1.5 text-sm"
+                      >
+                        <ImageIcon className="w-4 h-4" />
+                        <span className="font-medium">
+                          {isGeneratingImage ? 'Generating...' : 'Make Image'}
+                        </span>
+                      </button>
+
+                      <button
+                        onClick={handleGenerateVideo}
+                        disabled={!prompt.trim() || isGeneratingVideo || isGeneratingImage || videoUsage.count >= 10}
+                        className="px-3 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-1.5 text-sm"
+                        title={videoUsage.count >= 10 ? `Video limit reached (${videoUsage.count}/10 this month)` : 'Generate video (10¢ each, 10 free per month)'}
+                      >
+                        <Video className="w-4 h-4" />
+                        <span className="font-medium">
+                          {isGeneratingVideo ? 'Generating...' : `Make Video${videoUsage.count >= 10 ? ' (Limit)' : ''}`}
+                        </span>
+                      </button>
+                    </div>
+
+                    {/* Send Button - Circle */}
                     <button
                       onClick={handleGenerate}
                       disabled={(!prompt.trim() && !uploadedImage) || isGenerating}
-                      className="ml-auto px-3 py-1.5 bg-[#3EADF5] hover:bg-[#2E9CF5] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors text-sm flex items-center gap-1.5"
+                      className="w-10 h-10 bg-[#3EADF5] hover:bg-[#2E9CF5] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-full flex items-center justify-center transition-colors"
                     >
-                      <Play className="w-3 h-3" />
-                      <span>Send</span>
+                      <Play className="w-4 h-4" />
                     </button>
                   </div>
 
-                  {/* Generation Buttons */}
-                  <div className="flex justify-center gap-3 pt-3">
-                    {/* Image Generation Button */}
-                    <button
-                      onClick={handleGenerateImage}
-                      disabled={!prompt.trim() || isGeneratingImage || isGeneratingVideo}
-                      className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-1.5 text-sm"
-                    >
-                      <ImageIcon className="w-4 h-4" />
-                      <span className="font-medium">
-                        {isGeneratingImage ? 'Generating...' : 'Make Image'}
-                      </span>
-                    </button>
-
-                    {/* Video Generation Button */}
-                    <button
-                      onClick={handleGenerateVideo}
-                      disabled={!prompt.trim() || isGeneratingVideo || isGeneratingImage || videoUsage.count >= 10}
-                      className="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-1.5 text-sm"
-                      title={videoUsage.count >= 10 ? `Video limit reached (${videoUsage.count}/10 this month)` : 'Generate video (10¢ each, 10 free per month)'}
-                    >
-                      <Video className="w-4 h-4" />
-                      <span className="font-medium">
-                        {isGeneratingVideo ? 'Generating...' : `Make Video${videoUsage.count >= 10 ? ' (Limit)' : ''}`}
-                      </span>
-                    </button>
-                  </div>
 
                   {/* Generated Image Display */}
                   {generatedImage && (
@@ -1024,65 +1023,64 @@ export default function MrDeepseeksEditor() {
                   </div>
 
                   {/* Action Buttons - Below Input */}
-                  <div className="flex gap-2">
-                    {/* Image Upload Button - Only for logged in users */}
-                    {user && (
-                      <>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageUpload}
-                          className="hidden"
-                          id="image-upload-mobile"
-                        />
-                        <label
-                          htmlFor="image-upload-mobile"
-                          className="px-2 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg cursor-pointer flex items-center gap-1.5 transition-colors text-sm"
-                        >
-                          <Plus className="w-4 h-4" />
-                          <span className="font-medium">Image</span>
-                        </label>
-                      </>
-                    )}
+                  <div className="flex items-center justify-between pt-3">
+                    {/* Left Side Buttons */}
+                    <div className="flex gap-2">
+                      {/* Image Upload Button - Only for logged in users */}
+                      {user && (
+                        <>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                            className="hidden"
+                            id="image-upload-mobile"
+                          />
+                          <label
+                            htmlFor="image-upload-mobile"
+                            className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg cursor-pointer flex items-center gap-1.5 transition-colors text-sm"
+                          >
+                            <Plus className="w-4 h-4" />
+                            <span className="font-medium">Image</span>
+                          </label>
+                        </>
+                      )}
 
-                    {/* Send Button */}
+                      {/* Generation Buttons */}
+                      <button
+                        onClick={handleGenerateImage}
+                        disabled={!prompt.trim() || isGeneratingImage || isGeneratingVideo}
+                        className="px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-1.5 text-sm"
+                      >
+                        <ImageIcon className="w-4 h-4" />
+                        <span className="font-medium">
+                          {isGeneratingImage ? 'Generating...' : 'Make Image'}
+                        </span>
+                      </button>
+
+                      <button
+                        onClick={handleGenerateVideo}
+                        disabled={!prompt.trim() || isGeneratingVideo || isGeneratingImage || videoUsage.count >= 10}
+                        className="px-3 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-1.5 text-sm"
+                        title={videoUsage.count >= 10 ? `Video limit reached (${videoUsage.count}/10 this month)` : 'Generate video (10¢ each, 10 free per month)'}
+                      >
+                        <Video className="w-4 h-4" />
+                        <span className="font-medium">
+                          {isGeneratingVideo ? 'Generating...' : `Make Video${videoUsage.count >= 10 ? ' (Limit)' : ''}`}
+                        </span>
+                      </button>
+                    </div>
+
+                    {/* Send Button - Circle */}
                     <button
                       onClick={handleGenerate}
                       disabled={(!prompt.trim() && !uploadedImage) || isGenerating}
-                      className="ml-auto px-3 py-1.5 bg-[#3EADF5] hover:bg-[#2E9CF5] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors text-sm flex items-center gap-1.5"
+                      className="w-10 h-10 bg-[#3EADF5] hover:bg-[#2E9CF5] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-full flex items-center justify-center transition-colors"
                     >
-                      <Play className="w-3 h-3" />
-                      <span>Send</span>
+                      <Play className="w-4 h-4" />
                     </button>
                   </div>
 
-                  {/* Generation Buttons */}
-                  <div className="flex justify-center gap-3 pt-3">
-                    {/* Image Generation Button */}
-                    <button
-                      onClick={handleGenerateImage}
-                      disabled={!prompt.trim() || isGeneratingImage || isGeneratingVideo}
-                      className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-1.5 text-sm"
-                    >
-                      <ImageIcon className="w-4 h-4" />
-                      <span className="font-medium">
-                        {isGeneratingImage ? 'Generating...' : 'Make Image'}
-                      </span>
-                    </button>
-
-                    {/* Video Generation Button */}
-                    <button
-                      onClick={handleGenerateVideo}
-                      disabled={!prompt.trim() || isGeneratingVideo || isGeneratingImage || videoUsage.count >= 10}
-                      className="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-1.5 text-sm"
-                      title={videoUsage.count >= 10 ? `Video limit reached (${videoUsage.count}/10 this month)` : 'Generate video (10¢ each, 10 free per month)'}
-                    >
-                      <Video className="w-4 h-4" />
-                      <span className="font-medium">
-                        {isGeneratingVideo ? 'Generating...' : `Make Video${videoUsage.count >= 10 ? ' (Limit)' : ''}`}
-                      </span>
-                    </button>
-                  </div>
 
                   {/* Generated Image Display */}
                   {generatedImage && (
