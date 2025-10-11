@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Menu, Code, Eye, MessageSquare, ChevronDown, Play, Save, FolderOpen, Plus, X } from 'lucide-react';
 import Image from 'next/image';
+import AuthModal from '@/components/AuthModal';
+import { saveProject, loadProjects, deleteProject, type Project } from '@/lib/projects';
 
 type Message = {
   role: 'user' | 'assistant';
@@ -19,7 +21,12 @@ export default function MrDeepseeksEditor() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [user] = useState<{ id: string; email?: string } | null>({ id: 'demo-user', email: 'demo@example.com' });
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
+  const [hamburgerOpen, setHamburgerOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [loadModalOpen, setLoadModalOpen] = useState(false);
+  const [availableProjects, setAvailableProjects] = useState<Project[]>([]);
 
   // Store the COMPLETE HTML
   const [completeHtml, setCompleteHtml] = useState('');
@@ -39,6 +46,27 @@ export default function MrDeepseeksEditor() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Check authentication state on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const supabase = (await import('@/lib/supabase')).createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (session?.user) {
+          setUser({
+            id: session.user.id,
+            email: session.user.email
+          });
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+      }
+    };
+
+    checkAuth();
+  }, []);
 
   // Auto-resize chat input
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -76,6 +104,63 @@ export default function MrDeepseeksEditor() {
         setUploadedImage(reader.result as string);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  // Handle save project
+  const handleSaveProject = async (projectName: string) => {
+    if (!projectName.trim()) return;
+
+    try {
+      await saveProject(projectName, {
+        html: files.html,
+        css: files.css,
+        js: files.js
+      }, user?.id);
+
+      setSaveModalOpen(false);
+      // Optionally refresh projects list
+    } catch (error) {
+      console.error('Failed to save project:', error);
+      alert('Failed to save project. Please try again.');
+    }
+  };
+
+  // Handle load projects list
+  const handleLoadProjects = async () => {
+    try {
+      const projects = await loadProjects(user?.id);
+      setAvailableProjects(projects);
+      setLoadModalOpen(true);
+    } catch (error) {
+      console.error('Failed to load projects:', error);
+      alert('Failed to load projects. Please try again.');
+    }
+  };
+
+  // Handle load specific project
+  const handleLoadProject = async (project: Project) => {
+    setFiles({
+      html: project.html,
+      css: project.css,
+      js: project.js
+    });
+    setCompleteHtml(''); // Clear the complete HTML so it gets regenerated
+    setLoadModalOpen(false);
+  };
+
+  // Handle delete project
+  const handleDeleteProject = async (projectId: string) => {
+    if (!confirm('Are you sure you want to delete this project?')) return;
+
+    try {
+      await deleteProject(projectId, user?.id);
+      // Refresh projects list
+      const projects = await loadProjects(user?.id);
+      setAvailableProjects(projects);
+    } catch (error) {
+      console.error('Failed to delete project:', error);
+      alert('Failed to delete project. Please try again.');
     }
   };
 
@@ -257,17 +342,98 @@ export default function MrDeepseeksEditor() {
           <span className="text-sm text-gray-400">Look at me! I build your apps for free!</span>
         </div>
         <div className="flex items-center gap-2">
-          <button className="p-2 hover:bg-white/5 rounded-lg transition-colors">
+          <button
+            onClick={() => setSaveModalOpen(true)}
+            className="p-2 hover:bg-white/5 rounded-lg transition-colors"
+            title="Save Project"
+          >
             <Save className="w-5 h-5" />
           </button>
-          <button className="p-2 hover:bg-white/5 rounded-lg transition-colors">
+          <button
+            onClick={handleLoadProjects}
+            className="p-2 hover:bg-white/5 rounded-lg transition-colors"
+            title="Load Project"
+          >
             <FolderOpen className="w-5 h-5" />
           </button>
-          <button className="p-2 hover:bg-white/5 rounded-lg transition-colors">
+          <button
+            onClick={() => setHamburgerOpen(!hamburgerOpen)}
+            className="p-2 hover:bg-white/5 rounded-lg transition-colors relative"
+          >
             <Menu className="w-5 h-5" />
           </button>
         </div>
       </header>
+
+      {/* Hamburger Menu Dropdown */}
+      {hamburgerOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 lg:z-40" onClick={() => setHamburgerOpen(false)}>
+          <div
+            className="absolute top-14 left-4 bg-[#161b22] border border-white/10 rounded-lg shadow-xl w-64 py-2 z-50"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* User Info Section */}
+            <div className="px-4 py-3 border-b border-white/10">
+              {user ? (
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                    <span className="text-sm font-medium text-white">
+                      {user.email?.charAt(0).toUpperCase() || 'U'}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-white truncate">
+                      {user.email || 'User'}
+                    </p>
+                    <p className="text-xs text-gray-400">Logged in</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
+                    <span className="text-sm font-medium text-white">?</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white">Not logged in</p>
+                    <p className="text-xs text-gray-400">Guest mode</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Menu Items */}
+            <div className="py-2">
+              {!user && (
+                <button
+                  onClick={() => setAuthModalOpen(true)}
+                  className="w-full text-left px-4 py-2 hover:bg-white/5 text-white flex items-center gap-3 transition-colors"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span className="text-sm">Sign In</span>
+                </button>
+              )}
+
+              <Link href="/dashboard" className="block">
+                <button className="w-full text-left px-4 py-2 hover:bg-white/5 text-white flex items-center gap-3 transition-colors">
+                  <Save className="w-4 h-4" />
+                  <span className="text-sm">My Projects</span>
+                </button>
+              </Link>
+
+              <button className="w-full text-left px-4 py-2 hover:bg-white/5 text-white flex items-center gap-3 transition-colors">
+                <FolderOpen className="w-4 h-4" />
+                <span className="text-sm">Load Project</span>
+              </button>
+
+              {user && (
+                <button className="w-full text-left px-4 py-2 hover:bg-white/5 text-red-400 flex items-center gap-3 transition-colors">
+                  <span className="text-sm">Sign Out</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
@@ -687,7 +853,7 @@ export default function MrDeepseeksEditor() {
         {!chatOpen && (
           <button
             onClick={() => setChatOpen(true)}
-            className="hidden lg:block absolute right-4 top-4 w-12 h-12 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center shadow-lg transition-colors z-10"
+            className="hidden lg:block fixed right-4 bottom-4 w-12 h-12 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center shadow-lg transition-colors z-40"
           >
             <MessageSquare className="w-5 h-5" />
           </button>
@@ -704,6 +870,139 @@ export default function MrDeepseeksEditor() {
         )}
 
       </div>
+
+      {/* Save Modal */}
+      {saveModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-[#161b22] border border-white/10 rounded-lg p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <Image
+                  src="/graphic-mark-logo.svg"
+                  alt="MrDeepseeks Logo"
+                  width={24}
+                  height={24}
+                />
+                <h2 className="text-lg font-semibold text-white">Save Project</h2>
+              </div>
+              <button
+                onClick={() => setSaveModalOpen(false)}
+                className="p-1 hover:bg-white/5 rounded transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              const projectName = formData.get('projectName') as string;
+              handleSaveProject(projectName);
+            }} className="space-y-4">
+              <div>
+                <label htmlFor="projectName" className="block text-sm text-gray-300 mb-2">
+                  Project Name
+                </label>
+                <input
+                  id="projectName"
+                  name="projectName"
+                  type="text"
+                  placeholder="Enter project name..."
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  required
+                />
+              </div>
+
+              <div className="flex gap-3 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setSaveModalOpen(false)}
+                  className="px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-lg transition-colors"
+                >
+                  Save Project
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Load Modal */}
+      {loadModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-[#161b22] border border-white/10 rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[80vh] overflow-hidden">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <Image
+                  src="/graphic-mark-logo.svg"
+                  alt="MrDeepseeks Logo"
+                  width={24}
+                  height={24}
+                />
+                <h2 className="text-lg font-semibold text-white">Load Project</h2>
+              </div>
+              <button
+                onClick={() => setLoadModalOpen(false)}
+                className="p-1 hover:bg-white/5 rounded transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="max-h-96 overflow-y-auto">
+              {availableProjects.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-400">No projects found</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {availableProjects.map(project => (
+                    <div
+                      key={project.id}
+                      className="bg-white/5 border border-white/10 rounded-lg p-4 hover:bg-white/10 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-medium text-white">{project.name}</h3>
+                          <p className="text-sm text-gray-400">
+                            Created: {new Date(project.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleLoadProject(project)}
+                            className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm transition-colors"
+                          >
+                            Load
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProject(project.id)}
+                            className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-sm transition-colors"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+      />
     </div>
   );
 }
