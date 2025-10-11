@@ -773,47 +773,45 @@ export default function MrDeepseeksEditor() {
                   <div className="flex items-center justify-between pt-3">
                     {/* Left Side Buttons */}
                     <div className="flex gap-2">
-                      {/* Image Upload Button - Only for logged in users */}
-                      {user && (
-                        <>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageUpload}
-                            className="hidden"
-                            id="image-upload-desktop"
-                          />
-                          <label
-                            htmlFor="image-upload-desktop"
-                            className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg cursor-pointer flex items-center gap-1.5 transition-colors text-sm"
-                          >
-                            <Plus className="w-4 h-4" />
-                            <span className="font-medium">Image</span>
-                          </label>
-                        </>
-                      )}
+                      {/* Image Upload Button */}
+                      <>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="hidden"
+                          id="image-upload-desktop"
+                        />
+                        <label
+                          htmlFor="image-upload-desktop"
+                          className="px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg cursor-pointer flex items-center gap-1.5 transition-all text-sm shadow-lg"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span className="font-medium">+ Img</span>
+                        </label>
+                      </>
 
                       {/* Generation Buttons */}
                       <button
                         onClick={handleGenerateImage}
                         disabled={!prompt.trim() || isGeneratingImage || isGeneratingVideo}
-                        className="px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-1.5 text-sm"
+                        className="px-3 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-all flex items-center gap-1.5 text-sm shadow-lg"
                       >
                         <ImageIcon className="w-4 h-4" />
                         <span className="font-medium">
-                          {isGeneratingImage ? 'Generating...' : 'Make Image'}
+                          {isGeneratingImage ? 'Generating...' : 'Img'}
                         </span>
                       </button>
 
                       <button
                         onClick={handleGenerateVideo}
                         disabled={!prompt.trim() || isGeneratingVideo || isGeneratingImage || videoUsage.count >= 10}
-                        className="px-3 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-1.5 text-sm"
+                        className="px-3 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-all flex items-center gap-1.5 text-sm shadow-lg"
                         title={videoUsage.count >= 10 ? `Video limit reached (${videoUsage.count}/10 this month)` : 'Generate video (10¢ each, 10 free per month)'}
                       >
                         <Video className="w-4 h-4" />
                         <span className="font-medium">
-                          {isGeneratingVideo ? 'Generating...' : `Make Video${videoUsage.count >= 10 ? ' (Limit)' : ''}`}
+                          {isGeneratingVideo ? 'Generating...' : `Vid${videoUsage.count >= 10 ? ' (Limit)' : ''}`}
                         </span>
                       </button>
                     </div>
@@ -822,7 +820,7 @@ export default function MrDeepseeksEditor() {
                     <button
                       onClick={handleGenerate}
                       disabled={(!prompt.trim() && !uploadedImage) || isGenerating}
-                      className="w-10 h-10 bg-[#3EADF5] hover:bg-[#2E9CF5] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-full flex items-center justify-center transition-colors"
+                      className="w-10 h-10 bg-[#3EADF5] hover:bg-[#2E9CF5] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-full flex items-center justify-center transition-all shadow-lg"
                     >
                       <Play className="w-4 h-4" />
                     </button>
@@ -1026,47 +1024,45 @@ export default function MrDeepseeksEditor() {
                   <div className="flex items-center justify-between pt-3">
                     {/* Left Side Buttons */}
                     <div className="flex gap-2">
-                      {/* Image Upload Button - Only for logged in users */}
-                      {user && (
-                        <>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageUpload}
-                            className="hidden"
-                            id="image-upload-mobile"
-                          />
-                          <label
-                            htmlFor="image-upload-mobile"
-                            className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg cursor-pointer flex items-center gap-1.5 transition-colors text-sm"
-                          >
-                            <Plus className="w-4 h-4" />
-                            <span className="font-medium">Image</span>
-                          </label>
-                        </>
-                      )}
+                      {/* Image Upload Button */}
+                      <>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="hidden"
+                          id="image-upload-mobile"
+                        />
+                        <label
+                          htmlFor="image-upload-mobile"
+                          className="px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg cursor-pointer flex items-center gap-1.5 transition-all text-sm shadow-lg"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span className="font-medium">+ Img</span>
+                        </label>
+                      </>
 
                       {/* Generation Buttons */}
                       <button
                         onClick={handleGenerateImage}
                         disabled={!prompt.trim() || isGeneratingImage || isGeneratingVideo}
-                        className="px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-1.5 text-sm"
+                        className="px-3 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-all flex items-center gap-1.5 text-sm shadow-lg"
                       >
                         <ImageIcon className="w-4 h-4" />
                         <span className="font-medium">
-                          {isGeneratingImage ? 'Generating...' : 'Make Image'}
+                          {isGeneratingImage ? 'Generating...' : 'Img'}
                         </span>
                       </button>
 
                       <button
                         onClick={handleGenerateVideo}
                         disabled={!prompt.trim() || isGeneratingVideo || isGeneratingImage || videoUsage.count >= 10}
-                        className="px-3 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-1.5 text-sm"
+                        className="px-3 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-all flex items-center gap-1.5 text-sm shadow-lg"
                         title={videoUsage.count >= 10 ? `Video limit reached (${videoUsage.count}/10 this month)` : 'Generate video (10¢ each, 10 free per month)'}
                       >
                         <Video className="w-4 h-4" />
                         <span className="font-medium">
-                          {isGeneratingVideo ? 'Generating...' : `Make Video${videoUsage.count >= 10 ? ' (Limit)' : ''}`}
+                          {isGeneratingVideo ? 'Generating...' : `Vid${videoUsage.count >= 10 ? ' (Limit)' : ''}`}
                         </span>
                       </button>
                     </div>
@@ -1075,7 +1071,7 @@ export default function MrDeepseeksEditor() {
                     <button
                       onClick={handleGenerate}
                       disabled={(!prompt.trim() && !uploadedImage) || isGenerating}
-                      className="w-10 h-10 bg-[#3EADF5] hover:bg-[#2E9CF5] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-full flex items-center justify-center transition-colors"
+                      className="w-10 h-10 bg-[#3EADF5] hover:bg-[#2E9CF5] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-full flex items-center justify-center transition-all shadow-lg"
                     >
                       <Play className="w-4 h-4" />
                     </button>
