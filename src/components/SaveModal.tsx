@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { X } from 'lucide-react';
+import Image from 'next/image';
 
 type Files = {
   html: string;
@@ -49,7 +50,15 @@ export default function SaveModal({ isOpen, onClose, onSave, files }: SaveModalP
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-[#161b22] border border-white/10 rounded-lg p-6 w-full max-w-md mx-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-white">Save Project</h2>
+          <div className="flex items-center gap-3">
+            <Image
+              src="/graphic-mark-logo.svg"
+              alt="MrDeepseeks Logo"
+              width={24}
+              height={24}
+            />
+            <h2 className="text-lg font-semibold text-white">Save Project</h2>
+          </div>
           <button
             onClick={onClose}
             className="p-1 hover:bg-white/5 rounded transition-colors"

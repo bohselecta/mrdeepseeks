@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Menu, Code, Eye, MessageSquare, ChevronDown, Sparkles, Play, Save, FolderOpen } from 'lucide-react';
+import Image from 'next/image';
 import SaveModal from '@/components/SaveModal';
 import LoadModal from '@/components/LoadModal';
 import AuthModal from '@/components/AuthModal';
@@ -213,8 +214,13 @@ export default function MrDeepseeksEditor() {
       {/* Header */}
       <header className="h-14 border-b border-white/10 flex items-center justify-between px-6 bg-[#161b22]">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
-            <Sparkles className="w-5 h-5" />
+          <div className="w-8 h-8 flex items-center justify-center">
+            <Image
+              src="/graphic-mark-logo.svg"
+              alt="MrDeepseeks Logo"
+              width={32}
+              height={32}
+            />
           </div>
           <h1 className="text-lg font-bold">Mr. Deepseeks</h1>
           <span className="text-sm text-gray-400">I build your apps instantly!</span>

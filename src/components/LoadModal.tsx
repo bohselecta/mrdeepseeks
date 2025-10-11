@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, Trash2 } from 'lucide-react';
+import Image from 'next/image';
 import { Project } from '@/lib/storage';
 
 interface LoadModalProps {
@@ -63,7 +64,15 @@ export default function LoadModal({ isOpen, onClose, onLoad, onDelete }: LoadMod
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-[#161b22] border border-white/10 rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-white">Load Project</h2>
+          <div className="flex items-center gap-3">
+            <Image
+              src="/graphic-mark-logo.svg"
+              alt="MrDeepseeks Logo"
+              width={24}
+              height={24}
+            />
+            <h2 className="text-lg font-semibold text-white">Load Project</h2>
+          </div>
           <button
             onClick={onClose}
             className="p-1 hover:bg-white/5 rounded transition-colors"
