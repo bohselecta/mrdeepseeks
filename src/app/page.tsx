@@ -57,11 +57,24 @@ export default function MrDeepseeksEditor() {
 
   // Update parsed sections when complete HTML changes
   useEffect(() => {
-    if (completeHtml) {
+    if (completeHtml && !isGenerating) {
       const parsed = parseHtmlSections(completeHtml);
       setFiles(parsed);
     }
-  }, [completeHtml]);
+  }, [completeHtml, isGenerating]);
+
+  // Auto-switch tabs during generation based on what's being written
+  useEffect(() => {
+    if (isGenerating && completeHtml) {
+      if (completeHtml.includes('<style') && !completeHtml.includes('</style>')) {
+        setActiveTab('css');
+      } else if (completeHtml.includes('<script') && !completeHtml.includes('</script>')) {
+        setActiveTab('js');
+      } else if (completeHtml.includes('<body') && completeHtml.includes('</head>')) {
+        setActiveTab('html');
+      }
+    }
+  }, [completeHtml, isGenerating]);
 
 
   // Handle generation with streaming
@@ -73,6 +86,7 @@ export default function MrDeepseeksEditor() {
 
     setIsGenerating(true);
     setCompleteHtml('');
+    setActiveTab('html'); // Start on HTML tab
     const currentPrompt = prompt;
     setPrompt('');
 
@@ -214,9 +228,15 @@ export default function MrDeepseeksEditor() {
             {view === 'code' ? (
               <div className="h-full bg-[#0d1117] p-4">
                 <pre className="h-full overflow-auto font-mono text-sm text-gray-300 whitespace-pre-wrap">
-                  {files[activeTab]}
-                  {isGenerating && activeTab === activeTab && (
-                    <span className="inline-block w-2 h-4 bg-blue-500 animate-pulse ml-1" />
+                  {isGenerating ? (
+                    // Show raw streaming HTML while generating
+                    <>
+                      {completeHtml}
+                      <span className="inline-block w-2 h-4 bg-blue-500 animate-pulse ml-1" />
+                    </>
+                  ) : (
+                    // Show parsed sections when done
+                    files[activeTab]
                   )}
                 </pre>
               </div>
