@@ -153,7 +153,10 @@ export default function MrDeepseeksEditor() {
       formData.append('message', currentPrompt);
       if (currentImage) {
         formData.append('image', currentImage);
+        console.log('Sending image to API:', currentImage.name, currentImage.size, 'bytes');
       }
+
+      console.log('Making API request to /api/chat');
 
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -161,10 +164,13 @@ export default function MrDeepseeksEditor() {
       });
 
       if (!response.ok) {
-        throw new Error('API request failed');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('API request failed:', response.status, errorData);
+        throw new Error(`API request failed: ${response.status} - ${errorData.error || 'Unknown error'}`);
       }
 
       const data = await response.json();
+      console.log('API response received:', data);
 
       // For image analysis, just add the response as a message
       if (currentImage) {

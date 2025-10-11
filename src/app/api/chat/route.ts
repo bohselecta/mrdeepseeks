@@ -6,12 +6,29 @@ export async function POST(req: NextRequest) {
     const message = formData.get('message') as string;
     const imageFile = formData.get('image') as File | null;
 
+    console.log('API Request received:', { hasImage: !!imageFile, messageLength: message?.length });
+
     // If there's an image, use DeepInfra's Janus-Pro
     if (imageFile) {
+      console.log('Processing image with DeepInfra...');
+
+      // Check if API key is available
+      if (!process.env.DEEPINFRA_API_KEY) {
+        console.error('DEEPINFRA_API_KEY not found');
+        return NextResponse.json(
+          { error: 'DeepInfra API key not configured' },
+          { status: 500 }
+        );
+      }
+
+      console.log('DeepInfra API key available, length:', process.env.DEEPINFRA_API_KEY.length);
+
       // Create FormData for the API call
       const apiFormData = new FormData();
       apiFormData.append('image', imageFile);
       apiFormData.append('question', message || 'Explain this image.');
+
+      console.log('Making DeepInfra API call...');
 
       // Call DeepInfra API for multimodal
       const response = await fetch(
@@ -25,13 +42,19 @@ export async function POST(req: NextRequest) {
         }
       );
 
+      console.log('DeepInfra API call made, response status:', response.status);
+
       if (!response.ok) {
         const error = await response.text();
         console.error('DeepInfra API error:', error);
-        throw new Error(`DeepInfra API failed: ${response.status}`);
+        return NextResponse.json(
+          { error: `DeepInfra API failed: ${response.status} - ${error}` },
+          { status: 500 }
+        );
       }
 
       const data = await response.json();
+      console.log('DeepInfra API response data keys:', Object.keys(data));
 
       return NextResponse.json({
         content: data.response || 'Unable to analyze image'
