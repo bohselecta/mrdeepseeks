@@ -569,7 +569,7 @@ export default function MrDeepseeksEditor() {
           onClick={() => setHamburgerOpen(false)}
         >
           <div
-            className="absolute top-14 left-4 bg-[#161b22] border border-white/10 rounded-lg shadow-xl w-64 py-2 z-50"
+            className="absolute top-14 right-4 bg-[#161b22] border border-white/10 rounded-lg shadow-xl w-64 py-2 z-50"
             onClick={(e) => e.stopPropagation()}
           >
             {/* User Info Section */}
