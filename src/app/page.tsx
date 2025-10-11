@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Menu, Code, Eye, MessageSquare, ChevronDown, Play, Save, FolderOpen, Plus, X, Image as ImageIcon } from 'lucide-react';
+import { Menu, Code, Eye, MessageSquare, ChevronDown, Play, Save, FolderOpen, Plus, X, Image as ImageIcon, Video, Download } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import AuthModal from '@/components/AuthModal';
@@ -30,6 +30,9 @@ export default function MrDeepseeksEditor() {
   const [availableProjects, setAvailableProjects] = useState<Project[]>([]);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
+  const [videoUsage, setVideoUsage] = useState<{ count: number; month: string }>({ count: 0, month: '' });
 
   // Store the COMPLETE HTML
   const [completeHtml, setCompleteHtml] = useState('');
@@ -70,6 +73,40 @@ export default function MrDeepseeksEditor() {
 
     checkAuth();
   }, []);
+
+  // Load video usage on mount and when user changes
+  useEffect(() => {
+    if (user) {
+      loadVideoUsage();
+    }
+  }, [user]);
+
+  // Load video usage from localStorage
+  const loadVideoUsage = () => {
+    if (typeof window === 'undefined') return;
+
+    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+    const stored = localStorage.getItem(`video_usage_${user?.id || 'guest'}`);
+
+    if (stored) {
+      const usage = JSON.parse(stored);
+      if (usage.month === currentMonth) {
+        setVideoUsage(usage);
+      } else {
+        // Reset for new month
+        setVideoUsage({ count: 0, month: currentMonth });
+      }
+    } else {
+      setVideoUsage({ count: 0, month: currentMonth });
+    }
+  };
+
+  // Save video usage to localStorage
+  const saveVideoUsage = (newUsage: { count: number; month: string }) => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(`video_usage_${user?.id || 'guest'}`, JSON.stringify(newUsage));
+    setVideoUsage(newUsage);
+  };
 
   // Auto-resize chat input
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -207,6 +244,49 @@ export default function MrDeepseeksEditor() {
       alert('Failed to generate image. Please try again.');
     } finally {
       setIsGeneratingImage(false);
+    }
+  };
+
+  // Handle generate video
+  const handleGenerateVideo = async () => {
+    if (!prompt.trim() || isGeneratingVideo || videoUsage.count >= 10) return;
+
+    setIsGeneratingVideo(true);
+    setGeneratedVideo(null);
+
+    try {
+      const response = await fetch('https://api.deepinfra.com/v1/inference/Wan-AI/Wan2.1-T2V-1.3B', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_DEEPINFRA_API_KEY}`,
+        },
+        body: JSON.stringify({
+          prompt: prompt.trim()
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        console.error('Video generation API error:', error);
+        throw new Error(`Video generation failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.video_url) {
+        setGeneratedVideo(data.video_url);
+        // Update usage count
+        const newUsage = { count: videoUsage.count + 1, month: videoUsage.month };
+        saveVideoUsage(newUsage);
+      } else {
+        throw new Error('Invalid response format from video API');
+      }
+    } catch (error) {
+      console.error('Failed to generate video:', error);
+      alert('Failed to generate video. Please try again.');
+    } finally {
+      setIsGeneratingVideo(false);
     }
   };
 
@@ -722,16 +802,30 @@ export default function MrDeepseeksEditor() {
                     </button>
                   </div>
 
-                  {/* Image Generation Button */}
-                  <div className="flex justify-center pt-3">
+                  {/* Generation Buttons */}
+                  <div className="flex justify-center gap-3 pt-3">
+                    {/* Image Generation Button */}
                     <button
                       onClick={handleGenerateImage}
-                      disabled={!prompt.trim() || isGeneratingImage}
-                      className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-2"
+                      disabled={!prompt.trim() || isGeneratingImage || isGeneratingVideo}
+                      className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-1.5 text-sm"
                     >
                       <ImageIcon className="w-4 h-4" />
-                      <span className="text-sm font-medium">
+                      <span className="font-medium">
                         {isGeneratingImage ? 'Generating...' : 'Make Image'}
+                      </span>
+                    </button>
+
+                    {/* Video Generation Button */}
+                    <button
+                      onClick={handleGenerateVideo}
+                      disabled={!prompt.trim() || isGeneratingVideo || isGeneratingImage || videoUsage.count >= 10}
+                      className="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-1.5 text-sm"
+                      title={videoUsage.count >= 10 ? `Video limit reached (${videoUsage.count}/10 this month)` : 'Generate video (10¢ each, 10 free per month)'}
+                    >
+                      <Video className="w-4 h-4" />
+                      <span className="font-medium">
+                        {isGeneratingVideo ? 'Generating...' : `Make Video${videoUsage.count >= 10 ? ' (Limit)' : ''}`}
                       </span>
                     </button>
                   </div>
@@ -755,6 +849,42 @@ export default function MrDeepseeksEditor() {
                         height={512}
                         className="w-full max-w-md rounded-lg"
                       />
+                    </div>
+                  )}
+
+                  {/* Generated Video Display */}
+                  {generatedVideo && (
+                    <div className="mt-4 p-3 bg-white/5 border border-white/10 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-medium text-white">Generated Video</h4>
+                        <div className="flex gap-2">
+                          <a
+                            href={generatedVideo}
+                            download={`generated-video-${Date.now()}.mp4`}
+                            className="p-1 hover:bg-white/5 rounded transition-colors"
+                            title="Download video"
+                          >
+                            <Download className="w-4 h-4" />
+                          </a>
+                          <button
+                            onClick={() => setGeneratedVideo(null)}
+                            className="p-1 hover:bg-white/5 rounded transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <video
+                        src={generatedVideo}
+                        controls
+                        className="w-full max-w-md rounded-lg"
+                        preload="metadata"
+                      >
+                        Your browser does not support the video tag.
+                      </video>
+                      <p className="text-xs text-gray-400 mt-2">
+                        Video {videoUsage.count}/10 this month • 10¢ each
+                      </p>
                     </div>
                   )}
                 </div>
@@ -926,16 +1056,30 @@ export default function MrDeepseeksEditor() {
                     </button>
                   </div>
 
-                  {/* Image Generation Button */}
-                  <div className="flex justify-center pt-3">
+                  {/* Generation Buttons */}
+                  <div className="flex justify-center gap-3 pt-3">
+                    {/* Image Generation Button */}
                     <button
                       onClick={handleGenerateImage}
-                      disabled={!prompt.trim() || isGeneratingImage}
-                      className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-2"
+                      disabled={!prompt.trim() || isGeneratingImage || isGeneratingVideo}
+                      className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-1.5 text-sm"
                     >
                       <ImageIcon className="w-4 h-4" />
-                      <span className="text-sm font-medium">
+                      <span className="font-medium">
                         {isGeneratingImage ? 'Generating...' : 'Make Image'}
+                      </span>
+                    </button>
+
+                    {/* Video Generation Button */}
+                    <button
+                      onClick={handleGenerateVideo}
+                      disabled={!prompt.trim() || isGeneratingVideo || isGeneratingImage || videoUsage.count >= 10}
+                      className="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-1.5 text-sm"
+                      title={videoUsage.count >= 10 ? `Video limit reached (${videoUsage.count}/10 this month)` : 'Generate video (10¢ each, 10 free per month)'}
+                    >
+                      <Video className="w-4 h-4" />
+                      <span className="font-medium">
+                        {isGeneratingVideo ? 'Generating...' : `Make Video${videoUsage.count >= 10 ? ' (Limit)' : ''}`}
                       </span>
                     </button>
                   </div>
@@ -959,6 +1103,42 @@ export default function MrDeepseeksEditor() {
                         height={512}
                         className="w-full max-w-md rounded-lg"
                       />
+                    </div>
+                  )}
+
+                  {/* Generated Video Display */}
+                  {generatedVideo && (
+                    <div className="mt-4 p-3 bg-white/5 border border-white/10 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-medium text-white">Generated Video</h4>
+                        <div className="flex gap-2">
+                          <a
+                            href={generatedVideo}
+                            download={`generated-video-${Date.now()}.mp4`}
+                            className="p-1 hover:bg-white/5 rounded transition-colors"
+                            title="Download video"
+                          >
+                            <Download className="w-4 h-4" />
+                          </a>
+                          <button
+                            onClick={() => setGeneratedVideo(null)}
+                            className="p-1 hover:bg-white/5 rounded transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <video
+                        src={generatedVideo}
+                        controls
+                        className="w-full max-w-md rounded-lg"
+                        preload="metadata"
+                      >
+                        Your browser does not support the video tag.
+                      </video>
+                      <p className="text-xs text-gray-400 mt-2">
+                        Video {videoUsage.count}/10 this month • 10¢ each
+                      </p>
                     </div>
                   )}
                 </div>
