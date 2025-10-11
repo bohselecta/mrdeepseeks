@@ -19,7 +19,7 @@ export default function MrDeepseeksEditor() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
+  const [user] = useState<{ id: string; email?: string } | null>({ id: 'demo-user', email: 'demo@example.com' });
 
   // Store the COMPLETE HTML
   const [completeHtml, setCompleteHtml] = useState('');
@@ -129,7 +129,7 @@ export default function MrDeepseeksEditor() {
     setMessages(prev => [...prev, {
       role: 'user',
       content: prompt,
-      image: uploadedImage
+      image: uploadedImage || undefined
     }]);
 
     setIsGenerating(true);
