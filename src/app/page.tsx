@@ -822,7 +822,7 @@ export default function MrDeepseeksEditor() {
                       disabled={(!prompt.trim() && !uploadedImage) || isGenerating}
                       className="w-10 h-10 bg-[#3EADF5] hover:bg-[#2E9CF5] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-full flex items-center justify-center transition-all shadow-lg"
                     >
-                      <Play className="w-4 h-4" />
+                      <Play className="w-4 h-4 rotate-90" />
                     </button>
                   </div>
 
@@ -1073,7 +1073,7 @@ export default function MrDeepseeksEditor() {
                       disabled={(!prompt.trim() && !uploadedImage) || isGenerating}
                       className="w-10 h-10 bg-[#3EADF5] hover:bg-[#2E9CF5] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-full flex items-center justify-center transition-all shadow-lg"
                     >
-                      <Play className="w-4 h-4" />
+                      <Play className="w-4 h-4 rotate-90" />
                     </button>
                   </div>
 
