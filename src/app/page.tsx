@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Menu, Code, Eye, MessageSquare, ChevronDown, Play, Save, FolderOpen, Plus, X, Image as ImageIcon, Video, Download } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -79,10 +79,10 @@ export default function MrDeepseeksEditor() {
     if (user) {
       loadVideoUsage();
     }
-  }, [user]);
+  }, [user, loadVideoUsage]);
 
   // Load video usage from localStorage
-  const loadVideoUsage = () => {
+  const loadVideoUsage = useCallback(() => {
     if (typeof window === 'undefined') return;
 
     const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
@@ -99,14 +99,14 @@ export default function MrDeepseeksEditor() {
     } else {
       setVideoUsage({ count: 0, month: currentMonth });
     }
-  };
+  }, [user?.id]);
 
   // Save video usage to localStorage
-  const saveVideoUsage = (newUsage: { count: number; month: string }) => {
+  const saveVideoUsage = useCallback((newUsage: { count: number; month: string }) => {
     if (typeof window === 'undefined') return;
     localStorage.setItem(`video_usage_${user?.id || 'guest'}`, JSON.stringify(newUsage));
     setVideoUsage(newUsage);
-  };
+  }, [user?.id]);
 
   // Auto-resize chat input
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
