@@ -13,40 +13,79 @@ const deepseek = new OpenAI({
 export async function POST(req: NextRequest) {
   const { prompt } = await req.json();
 
-    const systemPrompt = `You are a web app builder. Generate ONE complete, working HTML file with embedded CSS and JavaScript.
+    const systemPrompt = `You are a web app builder. Generate a SINGLE, COMPLETE, WORKING HTML file.
 
 CRITICAL RULES:
-1. Generate ONLY the complete HTML file, no explanations
-2. Include <!DOCTYPE html> declaration
-3. Put ALL CSS in a <style> tag in the <head>
-4. Put ALL JavaScript in a <script> tag at the END of <body>
-5. Make sure ALL functions are defined in the script tag
-6. Use vanilla JavaScript (no imports)
-7. Make sure onclick, onchange, etc. work properly
+1. Generate ONE complete HTML document
+2. Include ALL styles in <style> tags in <head>
+3. Include ALL JavaScript in <script> tags before </body>
+4. ALL code must work when opened as a single .html file
+5. Use vanilla JavaScript only (no imports, no external libraries except CDN)
+6. Make event handlers work with onclick, onchange, etc. attributes
 
-Example format:
+JAVASCRIPT STRUCTURE (CRITICAL):
+- Declare ALL variables at the TOP of the script
+- Use 'let' or 'const' for all variable declarations
+- Define variables BEFORE any functions that use them
+- Put initialization code in DOMContentLoaded or at the end
+
+EXAMPLE:
+<script>
+  // ✅ CORRECT: Variables first
+  let count = 0;
+  let todos = [];
+
+  // Then functions
+  function increment() {
+    count++;
+    updateDisplay();
+  }
+
+  function updateDisplay() {
+    document.getElementById('count').textContent = count;
+  }
+
+  // Then initialization
+  document.addEventListener('DOMContentLoaded', function() {
+    updateDisplay();
+  });
+</script>
+
+TEMPLATE STRUCTURE:
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>App Title</title>
   <style>
-    .app { padding: 20px; }
-    button { background: blue; color: white; }
+    /* ALL CSS HERE */
+    body {
+      font-family: system-ui;
+      margin: 0;
+      padding: 20px;
+    }
   </style>
 </head>
 <body>
-  <div class="app">
-    <button onclick="sayHello()">Click Me</button>
-  </div>
+  <!-- ALL HTML HERE -->
+  <button onclick="handleClick()">Click Me</button>
 
   <script>
-    function sayHello() {
-      alert('Hello World!');
+    // Variables first
+    let data = 'Hello';
+
+    // Functions second
+    function handleClick() {
+      alert(data);
     }
   </script>
 </body>
 </html>
 
-Generate for: ${prompt}`;
+Generate a complete, working HTML file for: ${prompt}
+
+IMPORTANT: Generate ONLY the HTML code, no explanations, no markdown code blocks.`;
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -65,9 +104,13 @@ Generate for: ${prompt}`;
         for await (const chunk of completion) {
           const content = chunk.choices[0]?.delta?.content || '';
 
-          if (content.trim()) {
+          // Stream the raw HTML content
+          if (content) {
             controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ type: 'content', content: content })}\n\n`)
+              encoder.encode(`data: ${JSON.stringify({
+                type: 'content',
+                content: content
+              })}\n\n`)
             );
           }
         }

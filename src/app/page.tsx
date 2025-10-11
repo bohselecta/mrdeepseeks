@@ -226,7 +226,8 @@ export default function MrDeepseeksEditor() {
                 srcDoc={completeHtml}
                 className="w-full h-full bg-white"
                 title="Preview"
-                sandbox="allow-scripts allow-modals"
+                sandbox="allow-scripts allow-modals allow-forms allow-same-origin"
+                style={{ border: 'none' }}
               />
             )}
           </div>
