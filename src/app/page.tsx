@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Menu, Code, Eye, MessageSquare, ChevronDown, Sparkles, Play, Save, FolderOpen } from 'lucide-react';
+import { Menu, Code, Eye, MessageSquare, ChevronDown, Sparkles, Play, Save, FolderOpen, Plus, X } from 'lucide-react';
 import Image from 'next/image';
 
 type Message = {
@@ -16,6 +16,9 @@ export default function MrDeepseeksEditor() {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
 
   // Store the COMPLETE HTML
   const [completeHtml, setCompleteHtml] = useState('');
@@ -53,6 +56,25 @@ export default function MrDeepseeksEditor() {
     } else {
       textarea.style.height = maxHeight + 'px';
       textarea.style.overflowY = 'auto';
+    }
+  };
+
+  // Handle image upload
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Limit to 5MB
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Image must be less than 5MB');
+        return;
+      }
+      setImageFile(file);
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setUploadedImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -100,66 +122,102 @@ export default function MrDeepseeksEditor() {
 
   // Handle generation with streaming
   const handleGenerate = async () => {
-    if (!prompt.trim() || isGenerating) return;
+    if ((!prompt.trim() && !uploadedImage) || isGenerating) return;
 
     // Add user message
-    setMessages(prev => [...prev, { role: 'user', content: prompt }]);
+    setMessages(prev => [...prev, {
+      role: 'user',
+      content: prompt,
+      image: uploadedImage
+    }]);
 
     setIsGenerating(true);
     setCompleteHtml('');
     setActiveTab('html'); // Start on HTML tab
     const currentPrompt = prompt;
+    const currentImage = imageFile;
 
     // Clear prompt and reset textarea height
     setPrompt('');
+    setUploadedImage(null);
+    setImageFile(null);
     if (chatInputRef.current) {
       chatInputRef.current.style.height = '40px';
       chatInputRef.current.style.overflowY = 'hidden';
     }
 
     try {
-      const response = await fetch('/api/generate', {
+      // Use FormData for image upload
+      const formData = new FormData();
+      formData.append('message', currentPrompt);
+      if (currentImage) {
+        formData.append('image', currentImage);
+      }
+
+      const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: currentPrompt })
+        body: formData
       });
 
-      const reader = response.body!.getReader();
-      const decoder = new TextDecoder();
-      let accumulatedHtml = '';
+      if (!response.ok) {
+        throw new Error('API request failed');
+      }
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      const data = await response.json();
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
+      // For image analysis, just add the response as a message
+      if (currentImage) {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: data.content || 'Unable to analyze image'
+        }]);
+      } else {
+        // For text-only, generate HTML using the existing streaming logic
+        const htmlResponse = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: currentPrompt })
+        });
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
+        if (htmlResponse.ok) {
+          const reader = htmlResponse.body!.getReader();
+          const decoder = new TextDecoder();
+          let accumulatedHtml = '';
 
-              if (data.type === 'content') {
-                accumulatedHtml += data.content;
-                setCompleteHtml(accumulatedHtml);
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
 
-                // Auto-switch tabs based on what's being written
-                if (accumulatedHtml.includes('<style') && !accumulatedHtml.includes('</style>')) {
-                  setActiveTab('css');
-                } else if (accumulatedHtml.includes('<script') && !accumulatedHtml.includes('</script>')) {
-                  setActiveTab('js');
-                } else if (accumulatedHtml.includes('<body')) {
-                  setActiveTab('html');
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+
+                  if (data.type === 'content') {
+                    accumulatedHtml += data.content;
+                    setCompleteHtml(accumulatedHtml);
+
+                    // Auto-switch tabs based on what's being written
+                    if (accumulatedHtml.includes('<style') && !accumulatedHtml.includes('</style>')) {
+                      setActiveTab('css');
+                    } else if (accumulatedHtml.includes('<script') && !accumulatedHtml.includes('</script>')) {
+                      setActiveTab('js');
+                    } else if (accumulatedHtml.includes('<body')) {
+                      setActiveTab('html');
+                    }
+                  } else if (data.type === 'done') {
+                    setMessages(prev => [...prev, {
+                      role: 'assistant',
+                      content: '✅ App generated successfully!'
+                    }]);
+                  }
+                } catch {
+                  // Ignore parse errors
                 }
-              } else if (data.type === 'done') {
-                setMessages(prev => [...prev, {
-                  role: 'assistant',
-                  content: '✅ App generated successfully!'
-                }]);
               }
-            } catch {
-              // Ignore parse errors
             }
           }
         }
@@ -341,7 +399,10 @@ export default function MrDeepseeksEditor() {
                       <div className="text-xs font-medium mb-1 opacity-70">
                         {msg.role === 'user' ? 'You' : 'Mr. Deepseeks'}
                       </div>
-                      <div className="text-sm">{msg.content}</div>
+                      {msg.image && (
+                        <img src={msg.image} alt="uploaded" className="max-w-full rounded mb-2" />
+                      )}
+                      <div className="text-sm whitespace-pre-wrap">{msg.content}</div>
                     </div>
                   ))}
 
@@ -363,33 +424,77 @@ export default function MrDeepseeksEditor() {
 
                 {/* Chat Input */}
                 <div className="p-4 border-t border-white/10">
-                  <div className="relative">
-                    <textarea
-                      ref={chatInputRef}
-                      value={prompt}
-                      onChange={handleInputChange}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleGenerate();
-                        }
-                      }}
-                      placeholder="Describe your app..."
-                      className="w-full px-3 py-2 pr-12 bg-white/5 border border-white/10 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none overflow-hidden"
-                      disabled={isGenerating}
-                      rows={1}
-                      style={{
-                        minHeight: '40px',
-                        maxHeight: '200px' // ~10 lines at ~20px per line
-                      }}
-                    />
-                    <button
-                      onClick={handleGenerate}
-                      disabled={!prompt.trim() || isGenerating}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 bg-[#3EADF5] hover:bg-[#2E9CF5] disabled:opacity-50 disabled:cursor-not-allowed rounded-full flex items-center justify-center transition-colors"
-                    >
-                      <Play className="w-3 h-3 text-white" />
-                    </button>
+                  {/* Image Preview */}
+                  {uploadedImage && (
+                    <div className="mb-3 relative inline-block">
+                      <img
+                        src={uploadedImage}
+                        alt="Preview"
+                        className="max-h-32 rounded-lg border-2 border-purple-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUploadedImage(null);
+                          setImageFile(null);
+                        }}
+                        className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-lg"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="flex gap-2">
+                    {/* Image Upload Button - Only for logged in users */}
+                    {user && (
+                      <>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="hidden"
+                          id="image-upload-desktop"
+                        />
+                        <label
+                          htmlFor="image-upload-desktop"
+                          className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg cursor-pointer flex items-center gap-2 transition-colors"
+                        >
+                          <Plus className="w-5 h-5" />
+                          <span className="text-sm font-medium">Image</span>
+                        </label>
+                      </>
+                    )}
+
+                    {/* Text Input */}
+                    <div className="relative flex-1">
+                      <textarea
+                        ref={chatInputRef}
+                        value={prompt}
+                        onChange={handleInputChange}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleGenerate();
+                          }
+                        }}
+                        placeholder={user ? "Ask about an image or chat..." : "Describe your app..."}
+                        className="w-full px-3 py-2 pr-12 bg-white/5 border border-white/10 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none overflow-hidden"
+                        disabled={isGenerating}
+                        rows={1}
+                        style={{
+                          minHeight: '40px',
+                          maxHeight: '200px' // ~10 lines at ~20px per line
+                        }}
+                      />
+                      <button
+                        onClick={handleGenerate}
+                        disabled={(!prompt.trim() && !uploadedImage) || isGenerating}
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 bg-[#3EADF5] hover:bg-[#2E9CF5] disabled:opacity-50 disabled:cursor-not-allowed rounded-full flex items-center justify-center transition-colors"
+                      >
+                        <Play className="w-3 h-3 text-white" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -456,13 +561,16 @@ export default function MrDeepseeksEditor() {
                       <div className="text-xs font-medium mb-1 opacity-70">
                         {msg.role === 'user' ? 'You' : 'Mr. Deepseeks'}
                       </div>
-                      <div className="text-sm">{msg.content}</div>
+                      {msg.image && (
+                        <img src={msg.image} alt="uploaded" className="max-w-full rounded mb-2" />
+                      )}
+                      <div className="text-sm whitespace-pre-wrap">{msg.content}</div>
                     </div>
                   ))}
 
                   {isGenerating && (
                     <div className="flex items-center gap-2 text-blue-400">
-                      <Image
+          <Image
                         src="/building-app-icon.svg"
                         alt="Building"
                         width={24}
@@ -478,33 +586,77 @@ export default function MrDeepseeksEditor() {
 
                 {/* Chat Input */}
                 <div className="p-4 border-t border-white/10">
-                  <div className="relative">
-                    <textarea
-                      ref={chatInputRef}
-                      value={prompt}
-                      onChange={handleInputChange}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleGenerate();
-                        }
-                      }}
-                      placeholder="Describe your app..."
-                      className="w-full px-3 py-2 pr-12 bg-white/5 border border-white/10 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none overflow-hidden"
-                      disabled={isGenerating}
-                      rows={1}
-                      style={{
-                        minHeight: '40px',
-                        maxHeight: '200px' // ~10 lines at ~20px per line
-                      }}
-                    />
-                    <button
-                      onClick={handleGenerate}
-                      disabled={!prompt.trim() || isGenerating}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 bg-[#3EADF5] hover:bg-[#2E9CF5] disabled:opacity-50 disabled:cursor-not-allowed rounded-full flex items-center justify-center transition-colors"
-                    >
-                      <Play className="w-3 h-3 text-white" />
-                    </button>
+                  {/* Image Preview */}
+                  {uploadedImage && (
+                    <div className="mb-3 relative inline-block">
+                      <img
+                        src={uploadedImage}
+                        alt="Preview"
+                        className="max-h-32 rounded-lg border-2 border-purple-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUploadedImage(null);
+                          setImageFile(null);
+                        }}
+                        className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-lg"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="flex gap-2">
+                    {/* Image Upload Button - Only for logged in users */}
+                    {user && (
+                      <>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="hidden"
+                          id="image-upload-mobile"
+                        />
+                        <label
+                          htmlFor="image-upload-mobile"
+                          className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg cursor-pointer flex items-center gap-2 transition-colors"
+                        >
+                          <Plus className="w-5 h-5" />
+                          <span className="text-sm font-medium">Image</span>
+                        </label>
+                      </>
+                    )}
+
+                    {/* Text Input */}
+                    <div className="relative flex-1">
+                      <textarea
+                        ref={chatInputRef}
+                        value={prompt}
+                        onChange={handleInputChange}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleGenerate();
+                          }
+                        }}
+                        placeholder={user ? "Ask about an image or chat..." : "Describe your app..."}
+                        className="w-full px-3 py-2 pr-12 bg-white/5 border border-white/10 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none overflow-hidden"
+                        disabled={isGenerating}
+                        rows={1}
+                        style={{
+                          minHeight: '40px',
+                          maxHeight: '200px' // ~10 lines at ~20px per line
+                        }}
+                      />
+                      <button
+                        onClick={handleGenerate}
+                        disabled={(!prompt.trim() && !uploadedImage) || isGenerating}
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 bg-[#3EADF5] hover:bg-[#2E9CF5] disabled:opacity-50 disabled:cursor-not-allowed rounded-full flex items-center justify-center transition-colors"
+                      >
+                        <Play className="w-3 h-3 text-white" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
