@@ -317,7 +317,13 @@ export default function MrDeepseeksEditor() {
 
                 {isGenerating && (
                   <div className="flex items-center gap-2 text-blue-400">
-                    <Sparkles className="w-4 h-4 animate-pulse" />
+                    <Image
+                      src="/building-app-icon.svg"
+                      alt="Building"
+                      width={16}
+                      height={16}
+                      className="animate-pulse"
+                    />
                     <span className="text-sm">Building your app...</span>
                   </div>
                 )}
