@@ -74,13 +74,6 @@ export default function MrDeepseeksEditor() {
     checkAuth();
   }, []);
 
-  // Load video usage on mount and when user changes
-  useEffect(() => {
-    if (user) {
-      loadVideoUsage();
-    }
-  }, [user, loadVideoUsage]);
-
   // Load video usage from localStorage
   const loadVideoUsage = useCallback(() => {
     if (typeof window === 'undefined') return;
@@ -107,6 +100,13 @@ export default function MrDeepseeksEditor() {
     localStorage.setItem(`video_usage_${user?.id || 'guest'}`, JSON.stringify(newUsage));
     setVideoUsage(newUsage);
   }, [user?.id]);
+
+  // Load video usage on mount and when user changes
+  useEffect(() => {
+    if (user) {
+      loadVideoUsage();
+    }
+  }, [user, loadVideoUsage]);
 
   // Auto-resize chat input
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
