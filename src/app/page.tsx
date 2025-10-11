@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Menu, Code, Eye, MessageSquare, ChevronDown, Play, Save, FolderOpen, Plus, X } from 'lucide-react';
+import { Menu, Code, Eye, MessageSquare, ChevronDown, Play, Save, FolderOpen, Plus, X, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import AuthModal from '@/components/AuthModal';
 import { saveProject, loadProjects, deleteProject, type Project } from '@/lib/projects';
@@ -27,6 +27,8 @@ export default function MrDeepseeksEditor() {
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [loadModalOpen, setLoadModalOpen] = useState(false);
   const [availableProjects, setAvailableProjects] = useState<Project[]>([]);
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
   // Store the COMPLETE HTML
   const [completeHtml, setCompleteHtml] = useState('');
@@ -161,6 +163,49 @@ export default function MrDeepseeksEditor() {
     } catch (error) {
       console.error('Failed to delete project:', error);
       alert('Failed to delete project. Please try again.');
+    }
+  };
+
+  // Handle generate image
+  const handleGenerateImage = async () => {
+    if (!prompt.trim() || isGeneratingImage) return;
+
+    setIsGeneratingImage(true);
+    setGeneratedImage(null);
+
+    try {
+      const response = await fetch('https://api.deepinfra.com/v1/openai/images/generations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_DEEPINFRA_API_KEY}`,
+        },
+        body: JSON.stringify({
+          prompt: prompt.trim(),
+          size: "1024x1024",
+          model: "black-forest-labs/FLUX-1-dev",
+          n: 1
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        console.error('Image generation API error:', error);
+        throw new Error(`Image generation failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.data && data.data[0] && data.data[0].b64_json) {
+        setGeneratedImage(`data:image/jpeg;base64,${data.data[0].b64_json}`);
+      } else {
+        throw new Error('Invalid response format from image API');
+      }
+    } catch (error) {
+      console.error('Failed to generate image:', error);
+      alert('Failed to generate image. Please try again.');
+    } finally {
+      setIsGeneratingImage(false);
     }
   };
 
@@ -675,6 +720,42 @@ export default function MrDeepseeksEditor() {
                       <span>Send</span>
                     </button>
                   </div>
+
+                  {/* Image Generation Button */}
+                  <div className="flex justify-center pt-3">
+                    <button
+                      onClick={handleGenerateImage}
+                      disabled={!prompt.trim() || isGeneratingImage}
+                      className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      <ImageIcon className="w-4 h-4" />
+                      <span className="text-sm font-medium">
+                        {isGeneratingImage ? 'Generating...' : 'Make Image'}
+                      </span>
+                    </button>
+                  </div>
+
+                  {/* Generated Image Display */}
+                  {generatedImage && (
+                    <div className="mt-4 p-3 bg-white/5 border border-white/10 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-medium text-white">Generated Image</h4>
+                        <button
+                          onClick={() => setGeneratedImage(null)}
+                          className="p-1 hover:bg-white/5 rounded transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <Image
+                        src={generatedImage}
+                        alt="Generated"
+                        width={512}
+                        height={512}
+                        className="w-full max-w-md rounded-lg"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -843,6 +924,42 @@ export default function MrDeepseeksEditor() {
                       <span>Send</span>
                     </button>
                   </div>
+
+                  {/* Image Generation Button */}
+                  <div className="flex justify-center pt-3">
+                    <button
+                      onClick={handleGenerateImage}
+                      disabled={!prompt.trim() || isGeneratingImage}
+                      className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      <ImageIcon className="w-4 h-4" />
+                      <span className="text-sm font-medium">
+                        {isGeneratingImage ? 'Generating...' : 'Make Image'}
+                      </span>
+                    </button>
+                  </div>
+
+                  {/* Generated Image Display */}
+                  {generatedImage && (
+                    <div className="mt-4 p-3 bg-white/5 border border-white/10 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-medium text-white">Generated Image</h4>
+                        <button
+                          onClick={() => setGeneratedImage(null)}
+                          className="p-1 hover:bg-white/5 rounded transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <Image
+                        src={generatedImage}
+                        alt="Generated"
+                        width={512}
+                        height={512}
+                        className="w-full max-w-md rounded-lg"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
