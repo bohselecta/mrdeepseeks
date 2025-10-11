@@ -8,9 +8,10 @@ export async function POST(req: NextRequest) {
 
     // If there's an image, use DeepInfra's Janus-Pro
     if (imageFile) {
-      // Convert image to base64
-      const arrayBuffer = await imageFile.arrayBuffer();
-      const base64 = Buffer.from(arrayBuffer).toString('base64');
+      // Create FormData for the API call
+      const apiFormData = new FormData();
+      apiFormData.append('image', imageFile);
+      apiFormData.append('question', message || 'Explain this image.');
 
       // Call DeepInfra API for multimodal
       const response = await fetch(
@@ -19,16 +20,8 @@ export async function POST(req: NextRequest) {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${process.env.DEEPINFRA_API_KEY}`,
-            'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            input: {
-              image: base64,
-              prompt: message || 'Describe this image in detail.',
-              max_new_tokens: 512,
-              temperature: 0.7,
-            }
-          })
+          body: apiFormData
         }
       );
 
@@ -41,7 +34,7 @@ export async function POST(req: NextRequest) {
       const data = await response.json();
 
       return NextResponse.json({
-        content: data.output || data.results?.[0] || 'Unable to analyze image'
+        content: data.response || 'Unable to analyze image'
       });
     }
 
