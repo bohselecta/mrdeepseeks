@@ -11,25 +11,13 @@ export async function POST(req: NextRequest) {
   try {
     const supabase = await createServerClient();
 
-    // Get authenticated user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
     const formData = await req.formData();
     const message = formData.get('message') as string;
     const mode = formData.get('mode') as string;
     const imageFile = formData.get('image') as File | null;
 
     // ============================================
-    // TEXT CHAT MODE (Always Free)
+    // TEXT CHAT MODE (Always Free - No Auth Required)
     // ============================================
     if (mode === 'text') {
       const response = await fetch('https://api.deepseek.com/chat/completions', {
@@ -66,9 +54,21 @@ export async function POST(req: NextRequest) {
     }
 
     // ============================================
-    // IMAGE ANALYSIS MODE
+    // IMAGE ANALYSIS MODE (Premium Feature - Auth Required)
     // ============================================
     if (mode === 'image-analysis') {
+      // Get authenticated user for premium features
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        return NextResponse.json(
+          { error: 'Authentication required for image analysis' },
+          { status: 401 }
+        );
+      }
+
       // Check feature access
       const access = await AdRewardSystem.checkFeatureAccess(
         user.id,
@@ -111,9 +111,21 @@ export async function POST(req: NextRequest) {
     }
 
     // ============================================
-    // IMAGE GENERATION MODE
+    // IMAGE GENERATION MODE (Premium Feature - Auth Required)
     // ============================================
     if (mode === 'image-generation') {
+      // Get authenticated user for premium features
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        return NextResponse.json(
+          { error: 'Authentication required for image generation' },
+          { status: 401 }
+        );
+      }
+
       // Check feature access
       const access = await AdRewardSystem.checkFeatureAccess(
         user.id,
@@ -153,9 +165,21 @@ export async function POST(req: NextRequest) {
     }
 
     // ============================================
-    // VIDEO GENERATION MODE
+    // VIDEO GENERATION MODE (Premium Feature - Auth Required)
     // ============================================
     if (mode === 'video-generation') {
+      // Get authenticated user for premium features
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        return NextResponse.json(
+          { error: 'Authentication required for video generation' },
+          { status: 401 }
+        );
+      }
+
       // Check feature access
       const access = await AdRewardSystem.checkFeatureAccess(
         user.id,
