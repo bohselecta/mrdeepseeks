@@ -332,15 +332,13 @@ export default function MrDeepseeksEditor() {
     setGeneratedImage(null);
 
     try {
+      const formData = new FormData();
+      formData.append("message", prompt.trim());
+      formData.append("mode", "image-generation");
+
       const response = await fetch("/api/chat", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: prompt.trim(),
-          mode: "image-generation",
-        }),
+        body: formData,
       });
 
       if (!response.ok) {
@@ -381,15 +379,13 @@ export default function MrDeepseeksEditor() {
     setGeneratedVideo(null);
 
     try {
+      const formData = new FormData();
+      formData.append("message", prompt.trim());
+      formData.append("mode", "video-generation");
+
       const response = await fetch("/api/chat", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: prompt.trim(),
-          mode: "video-generation",
-        }),
+        body: formData,
       });
 
       if (!response.ok) {
@@ -509,12 +505,15 @@ export default function MrDeepseeksEditor() {
       formData.append("message", currentPrompt);
       if (currentImage) {
         formData.append("image", currentImage);
+        formData.append("mode", "image-analysis");
         console.log(
           "Sending image to API:",
           currentImage.name,
           currentImage.size,
           "bytes",
         );
+      } else {
+        formData.append("mode", "text");
       }
 
       console.log("Making API request to /api/chat");
