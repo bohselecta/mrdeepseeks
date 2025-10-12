@@ -287,7 +287,6 @@ export default function MrDeepseeksEditor() {
   const handleContinueAsGuest = () => {
     localStorage.setItem('mrdeepseeks_visited', 'true');
     setShowOnboardingModal(false);
-    setIsNewVisitor(false);
   };
 
   const handleOnboardingSignIn = () => {
@@ -303,7 +302,6 @@ export default function MrDeepseeksEditor() {
   const handleCloseOnboarding = () => {
     localStorage.setItem('mrdeepseeks_visited', 'true');
     setShowOnboardingModal(false);
-    setIsNewVisitor(false);
   };
 
   // Check if user has visited before
@@ -316,9 +314,6 @@ export default function MrDeepseeksEditor() {
       setTimeout(() => {
         setShowOnboardingModal(true);
       }, 1000);
-    } else if (hasVisited && !hasUser) {
-      // Returning visitor - don't show onboarding
-      setIsNewVisitor(false);
     }
     // If user is logged in, don't show onboarding
   }, [user]);
