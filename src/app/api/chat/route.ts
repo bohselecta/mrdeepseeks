@@ -1,102 +1,233 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@/lib/supabase-server';
+import { AdRewardSystem } from '@/lib/adSystem';
+import {
+  analyzeImage,
+  generateImage,
+  generateVideo,
+} from '@/lib/deepinfra';
 
 export async function POST(req: NextRequest) {
   try {
+    const supabase = await createServerClient();
+
+    // Get authenticated user
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
     const formData = await req.formData();
     const message = formData.get('message') as string;
+    const mode = formData.get('mode') as string;
     const imageFile = formData.get('image') as File | null;
 
-    console.log('API Request received:', { hasImage: !!imageFile, messageLength: message?.length });
-
-    // If there's an image, use DeepInfra's Janus-Pro
-    if (imageFile) {
-      console.log('Processing image with DeepInfra...');
-
-      // Check if API key is available
-      if (!process.env.DEEPINFRA_API_KEY) {
-        console.error('DEEPINFRA_API_KEY not found');
-        return NextResponse.json(
-          { error: 'DeepInfra API key not configured' },
-          { status: 500 }
-        );
-      }
-
-      console.log('DeepInfra API key available, length:', process.env.DEEPINFRA_API_KEY.length);
-
-      // Create FormData for the API call
-      const apiFormData = new FormData();
-      apiFormData.append('image', imageFile);
-      apiFormData.append('question', message || 'Explain this image.');
-
-      console.log('Making DeepInfra API call...');
-
-      // Call DeepInfra API for multimodal
-      const response = await fetch(
-        'https://api.deepinfra.com/v1/inference/deepseek-ai/Janus-Pro-7B',
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${process.env.DEEPINFRA_API_KEY}`,
-          },
-          body: apiFormData
-        }
-      );
-
-      console.log('DeepInfra API call made, response status:', response.status);
+    // ============================================
+    // TEXT CHAT MODE (Always Free)
+    // ============================================
+    if (mode === 'text') {
+      const response = await fetch('https://api.deepseek.com/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are Mr. Deepseeks, a helpful AI assistant.',
+            },
+            {
+              role: 'user',
+              content: message,
+            },
+          ],
+          temperature: 0.7,
+        }),
+      });
 
       if (!response.ok) {
-        const error = await response.text();
-        console.error('DeepInfra API error:', error);
-        return NextResponse.json(
-          { error: `DeepInfra API failed: ${response.status} - ${error}` },
-          { status: 500 }
-        );
+        throw new Error('DeepSeek API failed');
       }
 
       const data = await response.json();
-      console.log('DeepInfra API response data keys:', Object.keys(data));
 
       return NextResponse.json({
-        content: data.response || 'Unable to analyze image'
+        content: data.choices[0].message.content,
       });
     }
 
-    // No image - use regular DeepSeek text API
-    const response = await fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are Mr. Deepseeks, a helpful AI assistant.',
-          },
-          {
-            role: 'user',
-            content: message,
-          },
-        ],
-        temperature: 0.7,
-      }),
-    });
+    // ============================================
+    // IMAGE ANALYSIS MODE
+    // ============================================
+    if (mode === 'image-analysis') {
+      // Check feature access
+      const access = await AdRewardSystem.checkFeatureAccess(
+        user.id,
+        'image-analysis'
+      );
 
-    if (!response.ok) {
-      throw new Error('DeepSeek API failed');
+      if (!access.hasAccess) {
+        return NextResponse.json(
+          {
+            error: 'Feature locked',
+            message: 'Watch an ad to unlock image analysis',
+            requiresUnlock: true,
+            unlockType: 'daily-pass',
+          },
+          { status: 403 }
+        );
+      }
+
+      if (!imageFile) {
+        return NextResponse.json(
+          { error: 'Image file required' },
+          { status: 400 }
+        );
+      }
+
+      // Convert image to base64
+      const arrayBuffer = await imageFile.arrayBuffer();
+      const base64 = Buffer.from(arrayBuffer).toString('base64');
+
+      // Analyze image
+      const result = await analyzeImage(base64, message || 'Describe this image in detail.');
+
+      // Track usage
+      await AdRewardSystem.trackUsage(user.id, 'image-analysis');
+
+      return NextResponse.json({
+        content: result.content,
+        cost: result.cost,
+      });
     }
 
-    const data = await response.json();
+    // ============================================
+    // IMAGE GENERATION MODE
+    // ============================================
+    if (mode === 'image-generation') {
+      // Check feature access
+      const access = await AdRewardSystem.checkFeatureAccess(
+        user.id,
+        'image-generation'
+      );
 
-    return NextResponse.json({
-      content: data.choices[0].message.content,
-    });
-  } catch (error) {
+      if (!access.hasAccess) {
+        return NextResponse.json(
+          {
+            error: 'Feature locked',
+            message: 'Watch an ad to unlock image generation',
+            requiresUnlock: true,
+            unlockType: 'daily-pass',
+          },
+          { status: 403 }
+        );
+      }
+
+      if (!message?.trim()) {
+        return NextResponse.json(
+          { error: 'Prompt required for image generation' },
+          { status: 400 }
+        );
+      }
+
+      // Generate image
+      const result = await generateImage(message);
+
+      // Track usage
+      await AdRewardSystem.trackUsage(user.id, 'image-generation');
+
+      return NextResponse.json({
+        content: 'Generated your image!',
+        mediaUrl: result.imageUrl,
+        cost: result.cost,
+      });
+    }
+
+    // ============================================
+    // VIDEO GENERATION MODE
+    // ============================================
+    if (mode === 'video-generation') {
+      // Check feature access
+      const access = await AdRewardSystem.checkFeatureAccess(
+        user.id,
+        'video-generation'
+      );
+
+      if (!access.hasAccess) {
+        return NextResponse.json(
+          {
+            error: 'Feature locked',
+            message: 'Watch 3 ads to unlock video generation',
+            requiresUnlock: true,
+            unlockType: 'video-unlock',
+          },
+          { status: 403 }
+        );
+      }
+
+      // Check monthly limit
+      const { data: usage } = await supabase
+        .from('user_ai_usage')
+        .select('videos_generated_this_month')
+        .eq('user_id', user.id)
+        .single();
+
+      if (usage && usage.videos_generated_this_month >= 10) {
+        return NextResponse.json(
+          {
+            error: 'Monthly limit reached',
+            message: 'You have reached your monthly limit of 10 videos',
+          },
+          { status: 429 }
+        );
+      }
+
+      if (!message?.trim()) {
+        return NextResponse.json(
+          { error: 'Prompt required for video generation' },
+          { status: 400 }
+        );
+      }
+
+      // Generate video
+      const result = await generateVideo(message);
+
+      // Decrement video count
+      const decremented = await AdRewardSystem.decrementVideoCount(user.id);
+      if (!decremented) {
+        return NextResponse.json(
+          { error: 'Failed to decrement video count' },
+          { status: 500 }
+        );
+      }
+
+      // Track usage
+      await AdRewardSystem.trackUsage(user.id, 'video-generation');
+
+      return NextResponse.json({
+        content: 'Generated your video!',
+        mediaUrl: result.videoUrl,
+        cost: result.cost,
+      });
+    }
+
+    return NextResponse.json(
+      { error: 'Invalid mode' },
+      { status: 400 }
+    );
+  } catch (error: unknown) {
     console.error('API error:', error);
     return NextResponse.json(
-      { error: 'Failed to process request' },
+      { error: 'Failed to process request', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

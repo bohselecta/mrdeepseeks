@@ -19,6 +19,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import AuthModal from "@/components/AuthModal";
+import UnlockModal from "@/components/UnlockModal";
 import {
   saveProject,
   loadProjects,
@@ -55,6 +56,10 @@ export default function MrDeepseeksEditor() {
     count: number;
     month: string;
   }>({ count: 0, month: "" });
+
+  // Unlock modal state
+  const [showUnlockModal, setShowUnlockModal] = useState(false);
+  const [pendingUnlockType, setPendingUnlockType] = useState<'daily-pass' | 'video-unlock'>('daily-pass');
 
   // Store the COMPLETE HTML
   const [completeHtml, setCompleteHtml] = useState("");
@@ -98,37 +103,31 @@ export default function MrDeepseeksEditor() {
     checkAuth();
   }, []);
 
-  // Load video usage from localStorage
-  const loadVideoUsage = useCallback(() => {
-    if (typeof window === "undefined") return;
+  // Load video usage from server
+  const loadVideoUsage = useCallback(async () => {
+    if (!user) return;
 
-    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
-    const stored = localStorage.getItem(`video_usage_${user?.id || "guest"}`);
-
-    if (stored) {
-      const usage = JSON.parse(stored);
-      if (usage.month === currentMonth) {
-        setVideoUsage(usage);
-      } else {
-        // Reset for new month
-        setVideoUsage({ count: 0, month: currentMonth });
+    try {
+      const response = await fetch('/api/unlock');
+      if (response.ok) {
+        const data = await response.json();
+        setVideoUsage(prev => ({
+          ...prev,
+          count: data.videosRemaining || 0,
+          month: new Date().toISOString().slice(0, 7)
+        }));
       }
-    } else {
-      setVideoUsage({ count: 0, month: currentMonth });
+    } catch (error) {
+      console.error('Error loading video usage:', error);
     }
-  }, [user?.id]);
+  }, [user]);
 
-  // Save video usage to localStorage
+  // Save video usage (handled by server now)
   const saveVideoUsage = useCallback(
     (newUsage: { count: number; month: string }) => {
-      if (typeof window === "undefined") return;
-      localStorage.setItem(
-        `video_usage_${user?.id || "guest"}`,
-        JSON.stringify(newUsage),
-      );
       setVideoUsage(newUsage);
     },
-    [user?.id],
+    [],
   );
 
   // Load video usage on mount and when user changes
@@ -238,6 +237,49 @@ export default function MrDeepseeksEditor() {
     }
   };
 
+  // Handle ad unlock
+  const handleUnlock = async (revenueCents: number) => {
+    try {
+      const response = await fetch('/api/unlock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          unlockType: pendingUnlockType,
+          revenueCents: revenueCents,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to unlock feature');
+      }
+
+      // Refresh unlock status
+      await refreshUnlockStatus();
+    } catch (error: unknown) {
+      console.error("Error unlocking feature:", error);
+      alert(error instanceof Error ? error.message : String(error));
+    }
+  };
+
+  // Refresh unlock status
+  const refreshUnlockStatus = async () => {
+    if (!user) return;
+
+    try {
+      const response = await fetch('/api/unlock');
+      if (response.ok) {
+        const data = await response.json();
+        setVideoUsage(prev => ({
+          ...prev,
+          count: data.videosRemaining || 0,
+          month: new Date().toISOString().slice(0, 7)
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading unlock status:', error);
+    }
+  };
+
   // Handle generate image
   const handleGenerateImage = async () => {
     if (!prompt.trim() || isGeneratingImage) return;
@@ -252,24 +294,33 @@ export default function MrDeepseeksEditor() {
     setGeneratedImage(null);
 
     try {
-      const response = await fetch("/api/generate-image", {
+      const response = await fetch("/api/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          prompt: prompt.trim(),
+          message: prompt.trim(),
+          mode: "image-generation",
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error("Image generation API error:", errorData);
+
+        // Check if it's a feature lock error
+        if (errorData.requiresUnlock) {
+          setPendingUnlockType(errorData.unlockType);
+          setShowUnlockModal(true);
+          return;
+        }
+
         throw new Error(errorData.error || `Image generation failed: ${response.status}`);
       }
 
       const data = await response.json();
-      setGeneratedImage(data.imageUrl);
+      setGeneratedImage(data.mediaUrl);
     } catch (error) {
       console.error("Failed to generate image:", error);
       alert(`Failed to generate image: ${error instanceof Error ? error.message : 'Please try again.'}`);
@@ -292,24 +343,33 @@ export default function MrDeepseeksEditor() {
     setGeneratedVideo(null);
 
     try {
-      const response = await fetch("/api/generate-video", {
+      const response = await fetch("/api/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          prompt: prompt.trim(),
+          message: prompt.trim(),
+          mode: "video-generation",
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error("Video generation API error:", errorData);
+
+        // Check if it's a feature lock error
+        if (errorData.requiresUnlock) {
+          setPendingUnlockType(errorData.unlockType);
+          setShowUnlockModal(true);
+          return;
+        }
+
         throw new Error(errorData.error || `Video generation failed: ${response.status}`);
       }
 
       const data = await response.json();
-      setGeneratedVideo(data.videoUrl);
+      setGeneratedVideo(data.mediaUrl);
       // Update usage count
       const newUsage = {
         count: videoUsage.count + 1,
@@ -1463,11 +1523,19 @@ export default function MrDeepseeksEditor() {
         </div>
       )}
 
-      {/* Auth Modal */}
-      <AuthModal
-        isOpen={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
-      />
-    </div>
-  );
-}
+          {/* Auth Modal */}
+          <AuthModal
+            isOpen={authModalOpen}
+            onClose={() => setAuthModalOpen(false)}
+          />
+
+          {/* Unlock Modal */}
+          <UnlockModal
+            isOpen={showUnlockModal}
+            onClose={() => setShowUnlockModal(false)}
+            unlockType={pendingUnlockType}
+            onUnlock={handleUnlock}
+          />
+        </div>
+      );
+    }
