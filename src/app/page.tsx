@@ -19,6 +19,7 @@ import Image from "next/image";
 import Link from "next/link";
 import AuthModal from "@/components/AuthModal";
 import UnlockModal from "@/components/UnlockModal";
+import OnboardingModal from "@/components/OnboardingModal";
 import {
   saveProject,
   loadProjects,
@@ -59,6 +60,9 @@ export default function MrDeepseeksEditor() {
   // Unlock modal state
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [pendingUnlockType, setPendingUnlockType] = useState<'daily-pass' | 'video-unlock'>('daily-pass');
+
+  // Onboarding modal state
+  const [showOnboardingModal, setShowOnboardingModal] = useState(false);
 
   // Store the COMPLETE HTML
   const [completeHtml, setCompleteHtml] = useState("");
@@ -278,6 +282,46 @@ export default function MrDeepseeksEditor() {
       console.error('Error loading unlock status:', error);
     }
   };
+
+  // Onboarding modal handlers
+  const handleContinueAsGuest = () => {
+    localStorage.setItem('mrdeepseeks_visited', 'true');
+    setShowOnboardingModal(false);
+    setIsNewVisitor(false);
+  };
+
+  const handleOnboardingSignIn = () => {
+    setShowOnboardingModal(false);
+    setAuthModalOpen(true);
+  };
+
+  const handleOnboardingCreateAccount = () => {
+    setShowOnboardingModal(false);
+    setAuthModalOpen(true);
+  };
+
+  const handleCloseOnboarding = () => {
+    localStorage.setItem('mrdeepseeks_visited', 'true');
+    setShowOnboardingModal(false);
+    setIsNewVisitor(false);
+  };
+
+  // Check if user has visited before
+  useEffect(() => {
+    const hasVisited = localStorage.getItem('mrdeepseeks_visited');
+    const hasUser = user;
+
+    if (!hasVisited && !hasUser) {
+      // New visitor - show onboarding after a short delay
+      setTimeout(() => {
+        setShowOnboardingModal(true);
+      }, 1000);
+    } else if (hasVisited && !hasUser) {
+      // Returning visitor - don't show onboarding
+      setIsNewVisitor(false);
+    }
+    // If user is logged in, don't show onboarding
+  }, [user]);
 
   // Handle generate image
   const handleGenerateImage = async () => {
@@ -1534,6 +1578,15 @@ export default function MrDeepseeksEditor() {
             onClose={() => setShowUnlockModal(false)}
             unlockType={pendingUnlockType}
             onUnlock={handleUnlock}
+          />
+
+          {/* Onboarding Modal */}
+          <OnboardingModal
+            isOpen={showOnboardingModal}
+            onClose={handleCloseOnboarding}
+            onContinueAsGuest={handleContinueAsGuest}
+            onSignIn={handleOnboardingSignIn}
+            onCreateAccount={handleOnboardingCreateAccount}
           />
         </div>
       );
